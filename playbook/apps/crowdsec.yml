@@ -1,0 +1,324 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: crowdsec
+
+    docker_network: staging
+
+    crowdsec_bouncer_key:
+      traefik: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        31303332366436333164656635323433353634626565366238396337653837656536663937346164
+        3535343538613332393564323134353638343765366166330a363464316631623231333430386438
+        66343634326334333164333563323564356635663130363439353134646466336333616430383037
+        3265313432613132300a306132313431633266373262376332323131356665613136343462613135
+        33646365386237343763326566393631366633383136373563353134316265383439626364663861
+        3237613833376439336130626532396537376464643766653966
+
+    # Custom
+    DISCORD_WEBHOOK: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      35636662383938636332316232646136646666336230656530626266386132663162366232323461
+      3432353437323932666137613362386638336537383832630a313436363464653265616236303136
+      62306461643833663166636338333530663237623132656337656434306139356464663664626366
+      3533316536653439610a663764623266373863626263396431303466353631313261366531306134
+      66373035363339393038373362653764626165313635663934303864333663383364653137373765
+      31303731353565383136663065376565613437633433363361366138616337326666666361373035
+      37373264613034623562303065623930323433613533623163623934633837616231636138333865
+      39373737633031353861383037323066613562613165663934313438343265633034373730656364
+      36303236333466643435316330356332333430343838656636626666396430663066303737646530
+      6239353731656165646635346139653937343666663166623539
+
+    MAPQUEST_API_KEY: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      36653666323536663362393965356131393839393063356137643461633138353835613731373561
+      3734373130393930323064653835343536633663663366360a333562386236626134346130393564
+      39633234373638343737313434616233643661313331666237306539356232363361666534643163
+      6534393434313261390a643263663666636139396531366561636332363236643736373339323337
+      61353036363865313963306439313032346366646238386566653865393438633161383965623332
+      3532626334303162316338383935356164303130326261643230
+
+    # Console
+    ENROLL_KEY: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      36353231643163646562386663646530646334303837633534366431353564303261623563313464
+      3230313531663563343435363330633562633532613963330a373336613333373732636133643662
+      64663739313162663964636163656261303739323866613134353038326234383766306332653831
+      3361313434333761330a386563613831383766306132386131643439343435623933316437643932
+      63313332393635346662653330323732333461363131386163313037663835333464
+
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create config.yaml.local
+      ansible.builtin.copy:
+        content: |
+          common:
+            log_level: info
+          config_paths:
+            notification_dir: /etc/crowdsec/notifications.local/
+          api:
+            server:
+              log_level: warn
+        dest: "{{ config_directory }}/config.yaml.local"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create acquis.yaml
+      ansible.builtin.copy:
+        content: |
+          ---
+          filenames:
+            - /var/log/traefik/access.log
+            - /var/log/traefik/traefik.log
+          labels:
+            type: traefik
+          ---
+          filenames:
+            - /var/log/authelia.log
+          labels:
+            type: authelia
+        dest: "{{ config_directory }}/acquis.yaml"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create email.yaml
+      ansible.builtin.copy:
+        content: |
+          type: email
+          name: email
+
+          log_level: info
+
+          {% raw %}
+          format: |
+            {{ range . -}}
+            {{ $alert := . -}}
+
+            {{ range .Decisions -}}
+            <p><a href=https://www.shodan.io/host/{{ .Value}}>{{ .Value}}</a> will get <b>{{ .Type}}</b> for next <b>{{ .Duration}}</b> for triggering <b>{{ .Scenario}}</b>.</p>
+            {{ end -}}
+
+            <ul>
+            {{ range .Events -}}
+            {{ range .Meta }}{{ if eq .Key "traefik_router_name"}}<li>{{ .Value}}: {{ end }}{{ end }}{{ range .Meta }}{{ if eq .Key "http_path" }}{{ .Value }}{{ end }}{{ end }}</li>
+            {{ end -}}
+            </ul>
+
+            {{ end -}}
+          {% endraw %}
+
+          smtp_host: {{ common_email_host }}
+          smtp_username: {{ common_smtp_username }}
+          smtp_password: {{ common_smtp_password }}
+          smtp_port: {{ common_email_port }}
+          sender_email: {{ common_email_username }}
+          receiver_emails:
+           - {{ application }}{{ common_email_to }}
+          encryption_type: starttls
+          auth_type: login
+          email_subject: CrowdSec Notification
+
+          timeout: 20s
+        dest: "{{ config_directory }}/email.yaml"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create discord.yaml
+      ansible.builtin.copy:
+        content: |
+          type: http
+
+          name: discord
+
+          log_level: info
+
+          {% raw %}
+          format: |
+            {
+              "content": null,
+              "embeds": [
+                {{range . -}}
+                {{$alert := . -}}
+                {{range .Decisions -}}
+                {{if $alert.Source.Cn -}}
+                {
+                  "title": "{{$alert.MachineID}}: {{.Scenario}}",
+                  "description": ":flag_{{ $alert.Source.Cn | lower }}: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
+                  "url": "https://db-ip.com/{{$alert.Source.IP}}",
+                  "color": "16711680",
+                  "image": {
+                    "url": "https://www.mapquestapi.com/staticmap/v5/map?center={{$alert.Source.Latitude}},{{$alert.Source.Longitude}}&size=500,300&key={{ MAPQUEST_API_KEY }}"
+                  }
+                }
+                {{end}}
+                {{if not $alert.Source.Cn -}}
+                {
+                  "title": "{{$alert.MachineID}}: {{.Scenario}}",
+                  "description": ":pirate_flag: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
+                  "url": "https://db-ip.com/{{$alert.Source.IP}}",
+                  "color": "16711680"
+                }
+                {{end}}
+                {{end -}}
+                {{end -}}
+              ]
+            }
+          {% endraw %}
+
+          url: "{{ DISCORD_WEBHOOK }}"
+
+          method: POST
+
+          headers:
+            Content-Type: application/json
+
+        dest: "{{ config_directory }}/discord.yaml"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create profiles.yaml.local
+      ansible.builtin.copy:
+        content: |
+          name: default_ip_remediation
+
+          debug: false
+
+          filters:
+            - Alert.Remediation == true && Alert.GetScope() == "Ip"
+
+          decisions:
+            - type: ban
+
+              duration: 8766h
+
+          notifications:
+            - email
+            - discord
+
+          on_success: break
+          on_failure: break
+        dest: "{{ config_directory }}/profiles.yaml.local"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create my-whitelists.yaml
+      ansible.builtin.copy:
+        content: |
+          name: crowdsecurity/my-whitelists
+          description: "Custom Whitelist"
+          whitelist:
+            reason: "my custom whitelists"
+            expression:
+              -
+                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'mattermost' && (evt.Meta.http_path contains '/api/v4/')
+              -
+                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'home-assistant' && (evt.Meta.http_path contains '/api/calendars/' || evt.Meta.http_path contains '/api/camera_proxy_stream/')
+              -
+                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'qbittorrent' && (evt.Meta.http_path contains '/favicon.ico' || evt.Meta.http_path contains '/api/v2/')
+              -
+                evt.Parsed.traefik_router_name contains 'actual-budget' && evt.Meta.http_path contains '/data/migrations/'
+        dest: "{{ config_directory }}/my-whitelists.yaml"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+    - name: Create container
+      ansible.builtin.include_role:
+        name: docker_container
+      vars:
+        image: crowdsecurity/crowdsec:latest
+        published_ports:
+          - "8383:8080"
+        env:
+          # General
+          TZ: "{{ common_timezone }}"
+          PGID: "{{ common_user_id }}"
+
+          # Hub management
+          COLLECTIONS: |-
+            {{
+              [
+                "crowdsecurity/traefik",
+                "crowdsecurity/http-cve",
+                "LePresidente/authelia",
+              ] | join(' ')
+            }}
+
+          # LAPI
+          USE_WAL: "true"
+          CUSTOM_HOSTNAME: "{{ application }}.{{ docker_network.name }}"
+
+          ENROLL_INSTANCE_NAME: "{{ application }}.{{ docker_network.name }}"
+          ENROLL_TAGS: "staging"
+
+          # Bouncers
+          BOUNCER_KEY_traefik: "{{ crowdsec_bouncer_key.traefik }}"
+        volumes:
+          - "{{ config_directory }}/acquis.yaml:/etc/crowdsec/acquis.yaml"
+
+          - "{{ config_directory }}/config.yaml.local:/etc/crowdsec/config.yaml.local"
+          - "{{ config_directory }}/profiles.yaml.local:/etc/crowdsec/profiles.yaml.local"
+
+          - "{{ config_directory }}/email.yaml:/etc/crowdsec/notifications.local/email.yaml"
+          - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications.local/discord.yaml"
+
+          - "{{ config_directory }}/config:/etc/crowdsec"
+          - "{{ config_directory }}/data:/var/lib/crowdsec/data"
+
+          - "{{ config_directory }}/my-whitelists.yaml:/etc/crowdsec/parsers/s02-enrich/my-whitelists.yaml"
+
+          - "{{ common_directory }}/authelia/logs/authelia.log:/var/log/authelia.log:ro"
+          - "{{ common_directory }}/traefik/logs:/var/log/traefik:ro"
+          - "{{ common_directory }}/crowdsec/logs:/var/log/crowdsec:ro"
+        # labels:
+        #   '{
+        #     "chadburn.enabled": "true",
+        #     "chadburn.job-exec.{{ application }}-hub.user": "0",
+        #     "chadburn.job-exec.{{ application }}-hub.schedule": "@every 1h",
+        #     "chadburn.job-exec.{{ application }}-hub.command": "sh -c \"cscli hub update && cscli hub upgrade\"",
+        #     "chadburn.job-exec.{{ application }}-hub.tty": "false",
+        #     "chadburn.job-exec.{{ application }}-hub.no-overlap": "true"
+        #   }'
+        # metrics:
+        #   - port: 6060
+
+    - name: Create traefik bouncer container
+      ansible.builtin.include_role:
+        name: docker_container
+      vars:
+        name: "{{ application }}-traefik-bouncer"
+        image: fbonalair/traefik-crowdsec-bouncer:0.5.0
+        env:
+          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key.traefik }}"
+          CROWDSEC_AGENT_HOST: crowdsec:8080
+          GIN_MODE: "release"
+          CROWDSEC_BOUNCER_LOG_LEVEL: "2"

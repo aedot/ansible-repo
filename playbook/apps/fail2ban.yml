@@ -1,0 +1,35 @@
+---
+
+    - hosts: staging
+    
+      vars:
+        application: fail2ban
+    
+      tasks:
+        - name: Create config folder
+          ansible.builtin.file:
+            path: "{{ config_directory }}"
+            state: directory
+            owner: "{{ common_user }}"
+            group: "{{ common_group }}"
+            mode: "0777"
+
+        - name: Create container
+          community.docker.docker_container:
+            name: "{{ application }}"
+            image: lscr.io/linuxserver/fail2ban:latest
+            state: started
+            restart_policy: unless-stopped 
+            volumes:
+              - "{{ config_directory }}/config:/config"
+              - /var/log:/var/log:ro
+              - /apps/mariadb/log/mysql/mariadb-slow.log:/remotelogs/mariadb:ro
+              
+            env:
+              TZ: "{{ common_timezone }}"
+              UID: "{{ common_user_id | string }}"
+              GID: "{{ common_group_id | string }}"
+
+            networks:
+              - name: staging
+    

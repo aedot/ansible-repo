@@ -1,0 +1,24 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: dockersocket
+
+  tasks:
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: tecnativa/docker-socket-proxy:latest
+        state: started
+        restart_policy: unless-stopped
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+        privileged: true
+        env:
+          CONTAINERS: 1 | string
+          POST: 0 | string
+        published_ports:
+        - "2375:2375"
+        networks:
+          - name: staging

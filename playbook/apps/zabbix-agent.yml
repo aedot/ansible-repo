@@ -1,0 +1,38 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: zabbix-agent
+    
+    docker_network: staging
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: zabbix/zabbix-agent2:alpine-latest
+        pull: true
+        state: started
+        restart_policy: always
+        env:
+          ZBX_HOSTNAME: "zabbix.{{ common_local_tld }}"
+          ZBX_SERVER_HOST:
+          # ZBX_LISTENIP: 
+          # ZBX_LISTENPORT: 10051
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - /etc/timezone:/etc/timezone:ro    
+          - "{{ config_directory }}/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d"
+        security_opts:
+          - no-new-privileges:true

@@ -1,0 +1,32 @@
+---
+
+- hosts: staginng
+
+  vars:
+    application: dozzle
+
+  tasks:
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: amir20/dozzle:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "8081:8080"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        healthcheck:
+          test: ["CMD", "/dozzle", "healthcheck"]
+          interval: 3s
+          timeout: 30s
+          retries: 5
+          start_period: 30s
+        env:
+          DOZZLE_NO_ANALYTICS: "true"
+          # DOZZLE_REMOTE_HOST: tcp://172.16.10.12:2376
+        # homer:
+        #   name: Dozzle
+        #   service: Monitoring
+        #   priority: 960
+        #   subtitle: "Logs for docker containers"

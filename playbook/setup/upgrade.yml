@@ -1,0 +1,9 @@
+---
+
+- hosts: all
+
+  tasks:
+    - name: Make sure everything's up to date
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: yes

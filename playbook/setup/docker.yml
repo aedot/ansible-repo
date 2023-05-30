@@ -1,0 +1,144 @@
+---
+
+- hosts: all
+
+  vars:
+    application: docker
+    host: staging
+
+  handlers:
+    - name: Reboot
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+
+    - name: Restart
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+
+    - name: Update grub
+      ansible.builtin.command: update-grub
+      changed_when: true
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 600
+      changed_when: false
+
+    # Based on https://docs.docker.com/engine/installation/linux/ubuntu/
+    - name: Uninstall old versions
+      ansible.builtin.apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+        state: present
+      register: result
+      until: result is success
+      retries: 5
+      delay: 5
+
+    - name: Add Docker's official GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: "/etc/apt/trusted.gpg.d/{{ application }}"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      register: result
+      until: result is success
+      retries: 5
+      delay: 5
+
+    - name: Add Docker Repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/{{ application }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        state: present
+      register: __apt_repository
+      notify: Reboot
+        
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      when: __apt_repository.changed
+      register: result
+      until: result is success
+      retries: 5
+      delay: 5
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+      register: result
+      until: result is success
+      retries: 5
+      delay: 5
+
+    - name: Install docker-compose
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"
+
+    - name: Start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add user to Docker group
+      ansible.builtin.user:
+        name: "{{ common_user }}"
+        groups: docker
+        append: true
+
+    - name: Install docker pip package
+      ansible.builtin.pip:
+        name: docker
+        executable: pip3
+
+    - name: Create Docker networks
+      community.docker.docker_network:
+        name: "{{ host }}"
+      notify: Restart
+
+    - name: Enable swap limit support
+      ansible.builtin.lineinfile:
+        dest: /etc/default/grub
+        state: present
+        regex: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"'
+      notify: Update grub
+
+    # https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-configuration-file
+    - name: Configure daemon
+      ansible.builtin.copy:
+        content: |
+          {
+            "dns": ["172.16.1.1"],
+            "live-restore": true
+          }
+        dest: "/etc/docker/daemon.json"
+        owner: "root"
+        group: "root"
+        mode: "0755"
+      notify: Restart

@@ -1,0 +1,21 @@
+---
+
+- hosts: xeohomes
+
+  vars:
+    application: adminer
+
+  tasks:
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: adminer:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+        - "8282:8080"
+        env:
+          ADMINER_DEFAULT_SERVER: mariadb
+          Theme: dracula
+        networks:
+          - name: xeohomes

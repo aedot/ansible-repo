@@ -1,0 +1,50 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: homepage
+
+  handlers:
+    - name: "Restart {{ application }}"
+      listen: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
+    - name: Copy logos
+      ansible.builtin.copy:
+        src: "{{ homepage_logos_local_dir }}/"
+        dest: "{{ homepage_logos_remote_dir }}/"
+        owner: "{{ common_user_id }}"
+        group: "{{ common_group_id }}"
+        mode: "0777"
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: ghcr.io/benphelps/homepage:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+        - "3000:3000"
+        networks:
+          - name: staging
+        volumes:
+          - "{{ config_directory }}/config:/app/config"
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+          - "{{ homepage_logos_remote_dir }}:/app/public/icons"
+        env:
+          PUID: "{{ common_user_id | string }}"
+          PGID: "{{ common_group_id | string }}"

@@ -1,0 +1,21 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: chadburn
+
+    docker_network: staging
+
+  tasks:
+    - name: Create container
+      ansible.builtin.include_role:
+        name: docker_container
+      vars:
+        image: ghcr.io/premoweb/chadburn:latest
+        command:
+          - daemon
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+          - name: "{{ docker_network }}"

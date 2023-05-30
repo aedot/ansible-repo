@@ -1,0 +1,58 @@
+---
+
+- hosts: xeohomes
+
+  vars:
+    application: speedtracker
+
+    speedy_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      66343831613664636532366332663238343732356137663034373663326634336536646632316463
+      6338646261653264356133653262396135316631353936360a393931303930366463623364306434
+      35353263393531646432363764336530363933353964363738306265376262306662613261396331
+      6533346663626562340a613931383236666237653462383065346462343532373033303039366465
+      31346165313566333838663161396366353562343137383763373764333436303066366565363265
+      36323032633936366536663663393437636265306432363733303335333632623137313237306637
+      376261643437666332623963633534376330
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0777"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: ghcr.io/alexjustesen/speedtest-tracker:latest
+        state: started
+        restart_policy: unless-stopped 
+        volumes:
+          - "{{ config_directory }}/config:/config"
+          - "{{ config_directory }}/web:/etc/ssl/web"
+        published_ports:
+          - "1080:80"
+          - "1443:443"
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+          DB_CONNECTION: mysql
+          DB_HOST: mariadb
+          DB_PORT: 3306 | string
+          DB_DATABASE: speedtest_tracker
+          DB_USERNAME: speedy
+          DB_PASSWORD: "{{ speedy_password }}"
+        networks:
+              - name: xeohomes

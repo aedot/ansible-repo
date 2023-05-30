@@ -1,0 +1,199 @@
+---
+
+- hosts: services
+
+  handlers:
+    - name: Update grub
+      ansible.builtin.command: update-grub
+      changed_when: true
+
+    - name: restart ssh
+      ansible.builtin.service: 
+        name: sshd
+        state: restarted
+
+
+  tasks:
+    - name: Disable requiretty to enable Ansible pipelining
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        line: "{{ item.line }}"
+        state: "{{ item.state }}"
+      loop:
+        - line: Defaults requiretty
+          state: absent
+        - line: Defaults !requiretty
+          state: present
+      vars:
+        ansible_ssh_pipelining: false
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 600
+      changed_when: false
+
+    - name: Install pip3 and setuptools
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      register: result
+      until: result is success
+      retries: 5
+      delay: 5
+      loop:
+        - python3-pip
+        - python3-setuptools
+
+    - name: Disable motd files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "-x"
+      loop:
+        - /etc/update-motd.d/50-motd-news
+        - /etc/update-motd.d/10-help-text
+
+    - name: No password sudo
+      community.general.sudoers:
+        name: "{{ common_user }}"
+        user: "{{ common_user }}"
+        commands: ALL
+        nopassword: true
+
+    - name: Install apt packages
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - nano
+          - tree
+          - unzip
+          - curl
+          - wget
+          - dnsutils
+          - zfsutils-linux
+          - jq
+          - ripgrep
+          - update-notifier-common
+          - unattended-upgrades
+          - apt-show-versions
+          - qemu-guest-agent
+          - gnupg
+          - ufw
+        state: present
+
+    - name: Install snap packages
+      community.general.snap:
+        name:
+          - yq
+        state: present
+
+    - name: Remove packages
+      ansible.builtin.apt:
+        name:
+          - popularity-contest
+          - pastebinit
+        state: absent
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ common_timezone }}"
+
+    - name: Create common directory
+      ansible.builtin.file:
+        path: "{{ common_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    # - name: Set root email
+    #   ansible.builtin.copy:
+    #     dest: "/root/.forward"
+    #     content: "{{ common_startup_email }}"
+    #     owner: "{{ common_root_id }}"
+    #     group: "{{ common_root_group }}"
+    #     mode: "0644"
+
+    - name: Configure unattended-upgrades
+      ansible.builtin.lineinfile:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        state: present
+        regex: "^{{ item.key }}"
+        line: "{{ item.key }} {{ item.value }};"
+        validate: "echo %s && unattended-upgrades --dry-run"
+      loop: "{{ items | dict2items }}"
+      vars:
+        items:
+          "Unattended-Upgrade::MinimalSteps": "true"
+          # "Unattended-Upgrade::Mail": ""
+          # "Unattended-Upgrade::MailReport": "always"
+          "Unattended-Upgrade::Remove-Unused-Kernel-Packages": "true"
+          "Unattended-Upgrade::Remove-New-Unused-Dependencies": "true"
+          "Unattended-Upgrade::Remove-Unused-Dependencies": "true"
+
+    - name: Set GRUB timeout
+      ansible.builtin.lineinfile:
+        dest: /etc/default/grub
+        state: present
+        regex: "^GRUB_RECORDFAIL_TIMEOUT="
+        line: "GRUB_RECORDFAIL_TIMEOUT=10"
+      notify: Update grub
+
+    - name: Update sysctls
+      ansible.posix.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+      loop:
+        - name: fs.inotify.max_user_instances
+          value: 256
+
+    # - name: Make sure SSH is more secure.
+    #   ansible.builtin.lineinfile:
+    #     dest: /etc/ssh/sshd_config
+    #     regexp: "{{ item.regexp }}"
+    #     line: "{{ item.line }}"
+    #     state: present
+    #   with_items: 
+    #     - regexp: "^PasswordAuthentication"
+    #       line: "PasswordAuthentication no"
+    #     - regexp: "^PermitRootLogin"
+    #       line: "PermitRootLogin no"
+    #   notify: restart ssh
+
+    # - name: Install firewalld
+    #   package:
+    #     name: firewalld
+    #     state: present
+
+    # - name: Ensure firewalld is running
+    #   ansible.builtin.service:
+    #     name: firewalld
+    #     state: started
+    #     enabled: yes
+
+    # - name: Install fail2ban (Debian).
+    #   apt:
+    #     name: fail2ban
+    #     state: present
+    #   when: ansible_os_family == 'Debian'
+
+    # - name: Ensure fail2ban is running and enabled on boot.
+    #   service:
+    #     name: fail2ban
+    #     state: started
+    #     enabled: yes
+
+    # - name: Configure ports in firewall
+    #   firewalld:
+    #     state: "{{ item.state }}"
+    #     port: "{{ item.port }}"
+    #     zone: external
+    #     immediate: yes
+    #     permanent: yes
+    #   with_items:
+    #     - { state: 'enabled', port: 2849/tcp }
+    #     - { state: 'enabled', port: 123/udp }
+    #     - { state: 'enabled', port: 22/udp }
+    #     - { state: 'enabled', port: 22/tcp }
+    #     - { state: 'enabled', port: 10050/udp }
+    #     - { state: 'enabled', port: 10050/tcp }

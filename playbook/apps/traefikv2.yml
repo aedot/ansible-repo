@@ -1,0 +1,72 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: traefik
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create acme.json
+      ansible.builtin.file:
+        path: "{{ config_directory }}/acme.json"
+        state: touch
+        mode: "0600"
+        modification_time: "preserve"
+        access_time: "preserve"
+
+    - name: Template traefik configs
+      ansible.builtin.template:
+        src: "{{ files_directory }}/{{ item }}.j2"
+        dest: "{{ config_directory }}/{{ item }}"
+        mode: "0440"
+      loop:
+        - traefik.yaml
+        - dynamic_conf.yaml
+      notify: Restart
+
+    # https://github.com/quic-go/quic-go/wiki/UDP-Receive-Buffer-Size
+    - name: Increase UDP receive buffer size
+      ansible.posix.sysctl:
+        name: net.core.rmem_max
+        value: '2500000'
+        state: present
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: traefik:latest
+        state: started
+        restart_policy: always
+        env:
+          CF_API_EMAIL: "{{ cloudflare_email }}"
+          CF_API_KEY: "{{ cloudflare_dns_api }}"
+          TZ: "{{ common_timezone }}"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+          - "{{ config_directory }}/traefik.yaml:/etc/traefik/traefik.yaml"
+          - "{{ config_directory }}/acme.json:/acme.json"
+          - "{{ config_directory }}/dynamic_conf.yaml:/dynamic_conf.yaml"
+          - "{{ config_directory }}/logs:/var/log/crowdsec"
+          - "{{ config_directory }}:/etc/traefik/"
+        published_ports:
+          - 80:80
+          - 443:443
+          - 8080:8080
+        networks:
+          - name: staging

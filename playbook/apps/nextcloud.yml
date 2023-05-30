@@ -1,0 +1,96 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: nextcloud
+
+    docker_network: staging
+
+    nextcloud_database_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      33306264636435326638633130623436613833656662656436623038336264353832333030336366
+      3631316433303038636538336463313062343636313835380a356539326663666133636631326432
+      32306437386262383031633138386531396262383338373137363434376166613339306666653564
+      6236346361666339630a643863333166376630363736343837336431643136636462333535373637
+      35386361356231323564383730316162623535346261393435356139666537613863363763383237
+      36376232626639373633346532316237326266653631383731666630313937373833376537303338
+      653933323566343736333832353131623161
+
+    redis_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      39303561653562336163646334663435646138616537393664366533306365626162623933343366
+      6331666234636165313732313534303930363037666465310a343731663064646336623430313739
+      63613464653364636265343062326466383138323037383330363939386133663939306133633538
+      3865656230343830360a623830313133326563363533383434333038343562343232326438623230
+      37326437323335323063306531326231653062633039376562373136333464393138623762353735
+      6363386335616666363538623032313935303735333666316236
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create {{ application }} container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: nextcloud:latest
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ config_directory }}/nextcloud:/var/www/html"
+          - "{{ common_directory_storage }}:/mnt/zfs_files"
+        env:
+          MYSQL_DATABASE: "{{ application }}"
+          MYSQL_USER: "{{ application }}"
+          MYSQL_PASSWORD: "{{ nextcloud_database_password }}"
+          MYSQL_HOST: mariadb
+          MYSQL_HOST_PORT: 3306
+
+          NEXTCLOUD_ADMIN_USER: "{{ common_user }}"
+          NEXTCLOUD_ADMIN_PASSWORD: !vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            66623732633632633330383533396232386465663538646166353861663366633333313862633436
+            6330636266613964373763333534323936333139653161630a343332313763646162643236646663
+            32366336316661633661383864643732363033303237316335613030656534386536393839666233
+            3366343139663336660a346235383230346334343062653937633631383038613639386438353664
+            63643864643362656366623464333666396163386662663265636432373338613963666330656661
+            37653465656332346366383562336530636533343937623330373630363231316561373137383335
+            386435306434613664323239636237306338
+
+          # these values need to be updated manually afterwards in config.php
+          NEXTCLOUD_TRUSTED_DOMAINS: "{{ application }} {{ application }}.{{ docker_network.name }} {{ application }}.{{ common_local_tld }} {{ application }}.{{ common_tld }}"
+          TRUSTED_PROXIES: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] | string }}"
+          OVERWRITEPROTOCOL: "https"
+
+          REDIS_HOST: redis
+          REDIS_HOST_PORT: 6379 | string
+          REDIS_HOST_PASSWORD: "{{ redis_password }}"
+
+          SMTP_NAME: "{{ common_smtp_username }}"
+          SMTP_PASSWORD: "{{ common_smtp_password }}"
+          SMTP_PORT: "{{ common_email_port | string }}"
+          SMTP_HOST: "{{ common_email_host }}"
+          SMTP_SECURE: "tls"
+        published_ports:
+          - 87:80
+        labels:
+          # 33 is www-data
+          '{
+            "traefik.http.middlewares.{{ application }}-dav.redirectregex.permanent": "true",
+            "traefik.http.middlewares.{{ application }}-dav.redirectregex.regex": "https://(.*)/.well-known/(card|cal)dav",
+            "traefik.http.middlewares.{{ application }}-dav.redirectregex.replacement": "https://${1}/remote.php/dav/",
+
+            "chadburn.enabled": "true",
+            "chadburn.job-exec.{{ application }}-cron.user": "33",
+            "chadburn.job-exec.{{ application }}-cron.schedule": "@every 5m",
+            "chadburn.job-exec.{{ application }}-cron.command": "/usr/local/bin/php -f cron.php",
+            "chadburn.job-exec.{{ application }}-cron.tty": "false",
+            "chadburn.job-exec.{{ application }}-cron.no-overlap": "true"
+          }'

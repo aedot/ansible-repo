@@ -1,0 +1,53 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: postgres
+
+    docker_network: staging
+
+    postgres_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      65343537316361613237336437373762333630346639323435623330363835323635663137323962
+      3437326461643237623333386637363764626264653535330a333761623936383861383537303861
+      37313263383035323761393335373738396366343338366131653438666135396662396131646539
+      3261316434633731650a613732303731333538666236333661613137333030353361333937363730
+      33623231333430643535663333353539646430626630366461333861303266393932623961326565
+      6136303932356337613765306162343136623637326537376634
+    
+    postgres_user: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      39396430346234633037636335383739306638633861613439336164303037396563353531656433
+      3232643762383066373337343031346133393961643562390a376332633837323234663432316365
+      33373037633561323866616130353138306435636131303238353364333133366539376139323138
+      6333373039343239630a356631663661653464303165383335383462636132313866666330383136
+      6461
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0775"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: postgres:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - 5432:5432
+        volumes: 
+          - "{{ config_directory }}/db-data/:/var/lib/postgresql/data"
+          - "{{ config_directory }}/init.sql:/docker-entrypoint-initdb.d/init.sql"
+        env:
+          TZ: "{{ common_timezone }}"
+          POSTGRES_USER: "{{ postgres_user }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_DB: "{{ application }}"
+        networks:
+          - name: "{{ docker_network }}"

@@ -1,0 +1,5 @@
+---
+
+homepage_logos_local_dir: files/homepage/logos
+homepage_logos_remote_dir: "{{ common_directory }}/homepage/logos"
+homepage_logos_container_dir: /logos

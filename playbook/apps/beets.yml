@@ -1,0 +1,69 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: beets
+    docker_network: staging
+    plex_token: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      38323138323565326536323833396138333536383036663062623637663938666666343665646134
+      6230326465333539373230653635313339353962303035370a383933386135666636616262396563
+      32386337636639656238353031386131313333623962303234316537346539363662656436343265
+      3066383962363432390a393435383039393965343837306466623765363437393966343535303161
+      35666530373033343863386133316434316663393432313433613539636138373666
+
+  handlers:
+    - name: "Restart {{ application }}"
+      listen: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Copy beets config files
+      ansible.builtin.copy:
+        src: "{{ files_directory }}/"
+        dest: "{{ config_directory }}/"
+        owner: "{{ common_user_id }}"
+        group: "{{ common_group_id }}"
+        mode: "0777"
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: lscr.io/linuxserver/beets:latest
+        pull: true
+        state: started
+        restart_policy: unless-stopped
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ config_directory }}/plugins:/plugins"
+          - "{{ config_directory }}/config:/config"
+          - "{{ config_directory }}/scripts:/config/custom-cont-init.d"
+          - "{{ common_directory_audiobooks }}:/audiobooks"
+          - "{{ config_directory }}/config/untagged:/untagged"
+        security_opts:
+          - no-new-privileges:true
+
+    - name: Install require python packages in "{{ application }}"
+      community.docker.docker_container_exec:
+        container: "{{ application }}"
+        command: /bin/bash  /config/custom-cont-init.d/install-deps.sh
+

@@ -1,0 +1,42 @@
+---
+
+- hosts: staging
+
+  vars:
+    application: vscode
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: lscr.io/linuxserver/code-server:latest
+        state: started
+        restart_policy: unless-stopped 
+        volumes:
+          - "{{ config_directory }}/config:/config"
+          - /apps:/defaults
+        published_ports:
+          - "8443:8443"
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+          DEFAULT_WORKSPACE: /defaults
+        networks:
+              - name: staging
