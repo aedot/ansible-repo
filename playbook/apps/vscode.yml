@@ -1,9 +1,10 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: vscode
+    docker_network: 
 
   handlers:
     - name: Restart
@@ -20,11 +21,11 @@
         state: directory
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
-        mode: "0771"
+        mode: "0755"
 
     - name: Create container
       community.docker.docker_container:
-        name: "{{ application }}"
+        name: code
         image: lscr.io/linuxserver/code-server:latest
         state: started
         restart_policy: unless-stopped 
@@ -39,4 +40,11 @@
           TZ: "{{ common_timezone }}"
           DEFAULT_WORKSPACE: /defaults
         networks:
-              - name: staging
+              - name: "{{ docker_network }}"
+        labels:
+          '{
+            "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.entryPoints": "https",
+            "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
+            "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+          }'

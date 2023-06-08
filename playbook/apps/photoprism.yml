@@ -1,11 +1,11 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: photoprism
 
-    docker_network: staging
+    docker_network: 
 
     photoprism_database_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256

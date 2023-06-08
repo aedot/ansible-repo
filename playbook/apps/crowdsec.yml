@@ -1,11 +1,10 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: crowdsec
-
-    docker_network: staging
+    docker_network: 
 
     crowdsec_bouncer_key:
       traefik: !vault |
@@ -229,40 +228,22 @@
         mode: "0644"
       notify: Restart
 
-    - name: Create my-whitelists.yaml
-      ansible.builtin.copy:
-        content: |
-          name: crowdsecurity/my-whitelists
-          description: "Custom Whitelist"
-          whitelist:
-            reason: "my custom whitelists"
-            expression:
-              -
-                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'mattermost' && (evt.Meta.http_path contains '/api/v4/')
-              -
-                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'home-assistant' && (evt.Meta.http_path contains '/api/calendars/' || evt.Meta.http_path contains '/api/camera_proxy_stream/')
-              -
-                evt.Meta.http_status == '403' && evt.Parsed.traefik_router_name contains 'qbittorrent' && (evt.Meta.http_path contains '/favicon.ico' || evt.Meta.http_path contains '/api/v2/')
-              -
-                evt.Parsed.traefik_router_name contains 'actual-budget' && evt.Meta.http_path contains '/data/migrations/'
-        dest: "{{ config_directory }}/my-whitelists.yaml"
-        owner: "{{ common_root_id }}"
-        group: "{{ common_root_group }}"
-        mode: "0644"
-      notify: Restart
-
     - name: Create container
-      ansible.builtin.include_role:
-        name: docker_container
-      vars:
+      community.docker.docker_container:
+        name: "{{ application }}"
         image: crowdsecurity/crowdsec:latest
+        state: started
+        restart_policy: always
         published_ports:
           - "8383:8080"
+        volumes:
+          - "{{ config_directory }}/data:/var/lib/crowdsec/data"
+          - "{{ config_directory}}:/etc/crowdsec"
+          - "{{ common_directory }}/authelia/logs/authelia.log:/var/log/authelia.log:ro"
+          - "{{ common_directory }}/crowdsec/logs:/var/log/crowdsec:ro"
         env:
-          # General
           TZ: "{{ common_timezone }}"
-          PGID: "{{ common_user_id }}"
-
+          PGID: "{{ common_user_id | string }}"
           # Hub management
           COLLECTIONS: |-
             {{
@@ -272,51 +253,25 @@
                 "LePresidente/authelia",
               ] | join(' ')
             }}
+        networks:
+          - name: "{{ docker_network }}"
 
-          # LAPI
-          USE_WAL: "true"
-          CUSTOM_HOSTNAME: "{{ application }}.{{ docker_network.name }}"
-
-          ENROLL_INSTANCE_NAME: "{{ application }}.{{ docker_network.name }}"
-          ENROLL_TAGS: "staging"
-
-          # Bouncers
-          BOUNCER_KEY_traefik: "{{ crowdsec_bouncer_key.traefik }}"
-        volumes:
-          - "{{ config_directory }}/acquis.yaml:/etc/crowdsec/acquis.yaml"
-
-          - "{{ config_directory }}/config.yaml.local:/etc/crowdsec/config.yaml.local"
-          - "{{ config_directory }}/profiles.yaml.local:/etc/crowdsec/profiles.yaml.local"
-
-          - "{{ config_directory }}/email.yaml:/etc/crowdsec/notifications.local/email.yaml"
-          - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications.local/discord.yaml"
-
-          - "{{ config_directory }}/config:/etc/crowdsec"
-          - "{{ config_directory }}/data:/var/lib/crowdsec/data"
-
-          - "{{ config_directory }}/my-whitelists.yaml:/etc/crowdsec/parsers/s02-enrich/my-whitelists.yaml"
-
-          - "{{ common_directory }}/authelia/logs/authelia.log:/var/log/authelia.log:ro"
-          - "{{ common_directory }}/traefik/logs:/var/log/traefik:ro"
-          - "{{ common_directory }}/crowdsec/logs:/var/log/crowdsec:ro"
-        # labels:
-        #   '{
-        #     "chadburn.enabled": "true",
-        #     "chadburn.job-exec.{{ application }}-hub.user": "0",
-        #     "chadburn.job-exec.{{ application }}-hub.schedule": "@every 1h",
-        #     "chadburn.job-exec.{{ application }}-hub.command": "sh -c \"cscli hub update && cscli hub upgrade\"",
-        #     "chadburn.job-exec.{{ application }}-hub.tty": "false",
-        #     "chadburn.job-exec.{{ application }}-hub.no-overlap": "true"
-        #   }'
-        # metrics:
-        #   - port: 6060
+        labels:
+          '{
+            "chadburn.enabled": "true",
+            "chadburn.job-exec.{{ application }}-hub.user": "0",
+            "chadburn.job-exec.{{ application }}-hub.schedule": "@every 1h",
+            "chadburn.job-exec.{{ application }}-hub.command": "sh -c \"cscli hub update && cscli hub upgrade\"",
+            "chadburn.job-exec.{{ application }}-hub.tty": "false",
+            "chadburn.job-exec.{{ application }}-hub.no-overlap": "true"
+          }'
 
     - name: Create traefik bouncer container
-      ansible.builtin.include_role:
-        name: docker_container
-      vars:
+      community.docker.docker_container:
         name: "{{ application }}-traefik-bouncer"
-        image: fbonalair/traefik-crowdsec-bouncer:0.5.0
+        image: fbonalair/traefik-crowdsec-bouncer:latest
+        state: started
+        restart_policy: unless-stopped
         env:
           CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key.traefik }}"
           CROWDSEC_AGENT_HOST: crowdsec:8080

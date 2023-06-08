@@ -1,6 +1,6 @@
 ---
 
-- hosts: staginng
+- hosts: 
 
   vars:
     application: dozzle
@@ -24,9 +24,3 @@
           start_period: 30s
         env:
           DOZZLE_NO_ANALYTICS: "true"
-          # DOZZLE_REMOTE_HOST: tcp://172.16.10.12:2376
-        # homer:
-        #   name: Dozzle
-        #   service: Monitoring
-        #   priority: 960
-        #   subtitle: "Logs for docker containers"

@@ -1,10 +1,10 @@
 ---
 
-- hosts: staging
+- hosts:
 
   vars:
     application: agent
-    docker_network: staging
+    docker_network:
 
   tasks:
     - name: Create config folder

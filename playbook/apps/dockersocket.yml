@@ -1,9 +1,10 @@
 ---
 
-- hosts: staging
+- hosts:
 
   vars:
     application: dockersocket
+    docker_network:
 
   tasks:
     - name: Create container
@@ -16,9 +17,8 @@
           - /var/run/docker.sock:/var/run/docker.sock:ro
         privileged: true
         env:
-          CONTAINERS: 1 | string
-          POST: 0 | string
+          CONTAINERS: 1
+          POST: 0
         published_ports:
-        - "2375:2375"
-        networks:
-          - name: staging
+          - 2375:2375
+        networks: "{{ docker_network }}"

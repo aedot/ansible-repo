@@ -1,12 +1,26 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: cloudflared
+    docker_network: 
+    UUID: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      61303063626165363264303234306535373439363662633266333866653761643464396463313232
+      6136396265666534303331333733393539346531626666370a643163373333376461613733363937
+      39653439656532653865346334323363393463623837643061643863313739303733373364616439
+      3937316636616137630a363463343337646365306662616631363264663265313533626632303132
+      30653636396662653437333165376630613036373162396630333133666230353630323834643630
+      6264313661636364386363333234303631306337663364373562
 
-    docker_network:
-      - name: bridge
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
 
   tasks:
     - name: Create config folder
@@ -17,18 +31,18 @@
         group: "{{ common_group }}"
         mode: "0777"
 
-    # - name: Template cloudflared configs
-    #   ansible.builtin.template:
-    #     src: "{{ files_directory }}/config.yml.j2"
-    #     dest: "{{ config_directory }}/config.yml"
-    #     mode: "0440"
+    - name: Template cloudflared configs
+      ansible.builtin.template:
+        src: "{{ files_directory }}/config.yml.j2"
+        dest: "{{ config_directory }}/config.yml"
+        mode: "0444"
+      notify: Restart
 
     - name: Create container
-      ansible.builtin.include_role:
-        name: docker_container
-      vars:
+      community.docker.docker_container:
+        name: "{{ application }}"
         image: cloudflare/cloudflared:latest
-        hostname: "{{ application }}"
+        state: started
         restart_policy: always
         command: "tunnel --config /home/nonroot/.cloudflared/config.yml run {{ UUID }}"
         volumes:

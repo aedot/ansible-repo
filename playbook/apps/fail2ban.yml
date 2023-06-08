@@ -1,9 +1,10 @@
 ---
 
-    - hosts: staging
+    - hosts: 
     
       vars:
         application: fail2ban
+        docker_network:
     
       tasks:
         - name: Create config folder
@@ -30,6 +31,5 @@
               UID: "{{ common_user_id | string }}"
               GID: "{{ common_group_id | string }}"
 
-            networks:
-              - name: staging
+            networks: "{{ docker_network }}"
     

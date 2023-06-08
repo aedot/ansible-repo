@@ -1,0 +1,50 @@
+---
+
+- hosts: 
+
+  vars:
+    application: changedetection
+    docker_network: 
+
+  tasks:
+    - name: Create playwright container
+      community.docker.docker_container:
+        name: "{{ application }}-playwright-chrome"
+        image: browserless/chrome:latest
+        state: started
+        restart_policy: unless-stopped
+        shm_size: "2g"
+        networks:
+        - name: "{{ docker_network }}"
+        env:
+          DEFAULT_LAUNCH_ARGS: '["--window-size=1920,1080", "--disable-web-security=true", "--proxy-server=socks5://10.8.0.1", "stealth=1"]'
+
+          MAX_CONCURRENT_SESSIONS: "5"
+          PREBOOT_CHROME: "true"
+          SINGLE_RUN: "false"
+          KEEP_ALIVE: "false"
+
+          EXIT_ON_HEALTH_FAILURE: "true"
+
+          # TOKEN: "{{ changedetection_browserless_token }}"
+
+    - name: Create "{{ application }}" container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: ghcr.io/dgtlmoon/changedetection.io:latest
+        state: started
+        restart_policy: unless-stopped
+        volumes:
+          - "{{ config_directory }}:/datastore"
+        exposed_ports:
+          - 5000:5000
+        networks:
+          - name: "{{ docker_network }}"
+        env:
+          BASE_URL: "https://{{ application }}.{{ common_tld }}"
+
+          PLAYWRIGHT_DRIVER_URL: "ws://{{ application }}-playwright-chrome:3000?token={{ changedetection_browserless_token }}"
+
+          PUID: "{{ common_user_id | string }}"
+          PGID: "{{ common_group_id | string }}"
+

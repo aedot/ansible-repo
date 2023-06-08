@@ -1,12 +1,11 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: openldap
 
-    docker_network:
-      name: bridge
+    docker_network: 
 
   handlers:
     - name: Restart

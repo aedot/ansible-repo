@@ -1,11 +1,11 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: postgres
 
-    docker_network: staging
+    docker_network: 
 
     postgres_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256

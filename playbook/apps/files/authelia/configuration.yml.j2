@@ -1,23 +1,17 @@
 ---
+###############################################################
+#                   Authelia configuration                    #
+###############################################################
 
 theme: dark
-jwt_secret: "{{ jwt_secret }}"
+jwt_secret: {{ jwt_secret }}
 default_redirection_url: https://bing.com
 
+default_2fa_method: "totp"
 
 server:
   host: 0.0.0.0
   port: 9091
-  path: ""
-  buffers.read: 4096
-  buffers.write: 4096
-  enable_pprof: false
-  enable_expvars: false
-  disable_healthcheck: false
-  tls:
-    key: ""
-    certificate: ""
-  
 log:
   level: debug
   format: json
@@ -36,29 +30,38 @@ authentication_backend:
   refresh_interval: 5m
   file:
     path: /config/users_database.yml
+    watch: false
+    search:
+      email: false
+      case_insensitive: false
     password:
-      algorithm: argon2id
-      iterations: 1
-      key_length: 32
-      salt_length: 16
-      memory: 1024
-      parallelism: 8
+      algorithm: argon2
+      argon2:
+        variant: argon2id
+        iterations: 1
+        salt_length: 16
+        memory: 65536
+        parallelism: 4
+        key_length: 32
   
 access_control:
   default_policy: deny
   rules:
-    - domain: 
-      - 'auth.{{ common_tld }}'
+    - domain: '*.{{ common_tld }}'
+      policy: two_factor
+    - domain: 'onboard.{{ common_tld }}'
       policy: bypass
-    - domain:
-      - '*.{{ common_tld }}'
-      subject:
-        - "group:admins"
-      policy: one_factor
+    - domain: 'overseerr.{{ common_tld }}'
+      policy: bypass
+    - domain: 'auth.{{ common_tld }}'
+      policy: bypass
+    
 
 session:
   name: authelia_session
   secret: {{ session_secret }}
+  expiration: 3600
+  inactivity: 300
   domain: {{ common_tld }}
   redis:
     host: redis
@@ -70,7 +73,7 @@ session:
 
 regulation:
   max_retries: 3
-  find_time: 10m
+  find_time: 120
   ban_time: 12h
 
 storage:
@@ -84,16 +87,21 @@ storage:
 
 notifier:
   disable_startup_check: true
-  smtp:
+
+smtp:
     username: {{ common_smtp_username }}
     password: {{ common_smtp_password }}
     host: {{ common_email_host }}
     port: {{ common_email_port }}
     sender: {{ application }}{{ common_email_to }}
-    subject: "[Authelia] {title}"
+    subject: "Authelia request {title}"
+    startup_check_address: test{{ common_email_to }}
     disable_require_tls: {{ 'false' if common_email_protocol=='tls' else 'true' }}
     disable_html_emails: false
     tls:
       skip_verify: false
       minimum_version: TLS1.2
 
+  # filesystem:
+  #   filename: /config/notification.txt
+...

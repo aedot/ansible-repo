@@ -1,32 +1,14 @@
 http:
-  routers:
-    api:
-      rule: 'Host(`traefik.{{ common_tld }}`)'
-      entryPoints:
-        - https
-      service: api@internal
-      middlewares:
-        - auth
-      tls:
-        certResolver: '{{ traefik_certresolver }}'
-        domains:
-          - main: '{{ common_tld }}'
-            sans:
-              - '*.{{ common_tld }}'
-
   middlewares:
-    redirect:
-      redirectScheme:
-        scheme: https
-    security-headers:
-      headers:
-        stsIncludeSubdomains: true
-        stsSeconds: 31536000
-        stsPreload: true
+    local-ipwhitelist:
+      ipWhiteList:
+        sourceRange:
+          - 127.0.0.1/32
+          - 172.16.0.0/24
 
     auth:
       forwardauth:
-        address: http://auth:9091/api/verify?rd=https://auth.{{ common_tld }}/
+        address: http://authelia:9091/api/verify?rd=https://auth.{{ common_tld }}/ # replace auth with your authelia container name
         trustForwardHeader: true
         authResponseHeaders:
           - Remote-User
@@ -36,27 +18,42 @@ http:
 
     auth-basic:
       forwardauth:
-        address: http://auth:9091/api/verify?auth=basic
+        address: http://authelia:9091/api/verify?auth=basic # replace auth with your authelia container name
         trustForwardHeader: true
         authResponseHeaders:
           - Remote-User
           - Remote-Groups
           - Remote-Name
           - Remote-Email
-    
-    crowdsec-bouncer:
-      forwardauth:
-        address: http://bouncer-traefik:8080/api/v1/forwardAuth
-        trustForwardHeader: true
+
+    securityHeaders:
+      headers:
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+          server: ""
+          X-Forwarded-Proto: "https"
+        sslProxyHeaders:
+          X-Forwarded-Proto: https
+        referrerPolicy: "strict-origin-when-cross-origin"
+        hostsProxyHeaders:
+          - "X-Forwarded-Host"
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        contentTypeNosniff: true
+        browserXssFilter: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsSeconds: 63072000
+        stsPreload: true
 
 tls:
   options:
     default:
-      sniStrict: true
       minVersion: VersionTLS12
       cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
         - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-    mintls13:
-      sniStrict: true
-      minVersion: VersionTLS13
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305

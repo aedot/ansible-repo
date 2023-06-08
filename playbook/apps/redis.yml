@@ -1,9 +1,10 @@
 ---
 
-- hosts: staging
+- hosts:
 
   vars:
     application: redis
+    docker_network: 
     
     redis_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256
@@ -36,4 +37,4 @@
         volumes:
           - "{{ config_directory }}:/bitnami/"
         networks:
-          - name: staging
+          - name: "{{ docker_network }}"

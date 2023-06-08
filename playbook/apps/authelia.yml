@@ -1,9 +1,10 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: authelia
+    docker_network: 
 
     jwt_secret: !vault |
       $ANSIBLE_VAULT;1.1;AES256
@@ -59,19 +60,19 @@
   tasks:
     - name: Create config folder
       ansible.builtin.file:
-        path: "{{ config_directory }}"
+        path: "{{ config_directory }}/config"
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0755"
 
     - name: Template authelia config
       ansible.builtin.template:
         src: "{{ files_directory }}/{{ item }}.j2"
-        dest: "{{ config_directory }}/{{ item }}"
+        dest: "{{ config_directory }}/config/{{ item }}"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
-        mode: "0444"
+        mode: "0644"
       loop:
         - configuration.yml
         - users_database.yml
@@ -85,18 +86,20 @@
         restart_policy: unless-stopped
         env:
           TZ: "{{ common_timezone }}"
-        exposed_ports:
-          - "9091"
+        published_ports:
+          - 9091:9091
         networks:
-          - name: staging
+          - name: "{{ docker_network }}"
         volumes:
-          - "{{ config_directory }}:/config"
+          - "{{ config_directory }}/config:/config"
           - "{{ config_directory }}/logs:/var/log/authelia"
         labels:
-          traefik.enable: "true"
-          traefik.http.routers.authelia.rule: "Host(`auth.{{ common_tld }}`)"
-          traefik.http.routers.authelia.entrypoints: "https"
-          traefik.http.routers.authelia.tls: "true"
-          traefik.http.middlewares.authelia.forwardauth.address: "http://authelia:9091/api/verify?rd=https://auth.{{ common_tld }}"
-          traefik.http.middlewares.authelia.forwardauth.trustForwardHeader: "true"
-          traefik.http.middlewares.authelia.forwardauth.authResponseHeaders: "Remote-User, Remote-Groups, Remote-Name, Remote-Email"
+          '{
+            "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`auth.{{ common_tld }}`)",
+            "traefik.http.routers.{{ application }}.entrypoints": "https",
+            "traefik.http.routers.{{ application }}.tls": "true",
+            "traefik.http.middlewares.{{ application }}.forwardauth.address": "http://authelia:9091/api/verify?rd=https://auth.{{ common_tld }}",
+            "traefik.http.middlewares.{{ application }}.forwardauth.trustForwardHeader": "true",
+            "traefik.http.middlewares.{{ application }}.forwardauth.authResponseHeaders": "Remote-User, Remote-Groups, Remote-Name, Remote-Email",
+          }'

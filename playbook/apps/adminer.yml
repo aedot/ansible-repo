@@ -1,9 +1,10 @@
 ---
 
-- hosts: xeohomes
+- hosts: 
 
   vars:
     application: adminer
+    docker_network:
 
   tasks:
     - name: Create container
@@ -18,4 +19,4 @@
           ADMINER_DEFAULT_SERVER: mariadb
           Theme: dracula
         networks:
-          - name: xeohomes
+          - name: "{{ docker_network }}"

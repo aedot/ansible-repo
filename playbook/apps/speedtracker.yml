@@ -1,9 +1,10 @@
 ---
 
-- hosts: xeohomes
+- hosts: 
 
   vars:
     application: speedtracker
+    docker_network:
 
     speedy_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256
@@ -55,4 +56,4 @@
           DB_USERNAME: speedy
           DB_PASSWORD: "{{ speedy_password }}"
         networks:
-              - name: xeohomes
+              - name: "{{ docker_network }}"

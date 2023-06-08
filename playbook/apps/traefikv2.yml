@@ -1,9 +1,10 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: traefik
+    docker_network: 
 
   handlers:
     - name: Restart
@@ -20,7 +21,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0755"
 
     - name: Create acme.json
       ansible.builtin.file:
@@ -34,7 +35,7 @@
       ansible.builtin.template:
         src: "{{ files_directory }}/{{ item }}.j2"
         dest: "{{ config_directory }}/{{ item }}"
-        mode: "0440"
+        mode: "0644"
       loop:
         - traefik.yaml
         - dynamic_conf.yaml
@@ -55,18 +56,22 @@
         restart_policy: always
         env:
           CF_API_EMAIL: "{{ cloudflare_email }}"
-          CF_API_KEY: "{{ cloudflare_dns_api }}"
+          CF_DNS_API_TOKEN: "{{ cloudflare_dns_api }}"
           TZ: "{{ common_timezone }}"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
-          - "{{ config_directory }}/traefik.yaml:/etc/traefik/traefik.yaml"
-          - "{{ config_directory }}/acme.json:/acme.json"
-          - "{{ config_directory }}/dynamic_conf.yaml:/dynamic_conf.yaml"
-          - "{{ config_directory }}/logs:/var/log/crowdsec"
           - "{{ config_directory }}:/etc/traefik/"
+          - /var/log/crowdsec/:/var/log/crowdsec/
+        labels:
+          traefik.enable: "true"
+          traefik.http.routers.api.entryPoints: "https" 
+          traefik.http.routers.api.service: "api@internal"
+          traefik.http.routers.api.rule: "Host(`traefik.{{ common_tld }}`)"
+          traefik.http.routers.api.middlewares: "auth@file"
         published_ports:
           - 80:80
           - 443:443
           - 8080:8080
         networks:
-          - name: staging
+          - name: "{{ docker_network }}"
+

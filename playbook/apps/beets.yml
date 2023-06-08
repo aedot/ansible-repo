@@ -1,10 +1,10 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: beets
-    docker_network: staging
+    docker_network: 
     plex_token: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       38323138323565326536323833396138333536383036663062623637663938666666343665646134

@@ -1,18 +1,19 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: chadburn
 
-    docker_network: staging
+    docker_network: 
 
   tasks:
     - name: Create container
-      ansible.builtin.include_role:
-        name: docker_container
-      vars:
+      community.docker.docker_container:
+        name: "{{ application }}"
         image: ghcr.io/premoweb/chadburn:latest
+        state: started
+        restart_policy: unless-stopped
         command:
           - daemon
         volumes:
