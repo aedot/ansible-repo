@@ -68,6 +68,7 @@ entryPoints:
               - '*.{{ common_tld }}'
       middlewares:
         - securityHeaders@file
+        - crowdsec-bouncer@file
 
 certificatesResolvers:
   letsencrypt:

@@ -15,9 +15,8 @@ server:
 log:
   level: debug
   format: json
-  file_path: /var/log/authelia/authelia.log
+  file_path: /var/log/crowdsec/authelia.log
   keep_stdout: true
-
 
 totp:
   issuer: {{ common_tld }}
@@ -47,15 +46,19 @@ authentication_backend:
 access_control:
   default_policy: deny
   rules:
-    - domain: '*.{{ common_tld }}'
-      policy: two_factor
     - domain: 'onboard.{{ common_tld }}'
+      resources:
+        - '^/j/'
+        - '^/join/'
+        - '^/setup/*'
+        - '^/static/'
       policy: bypass
     - domain: 'overseerr.{{ common_tld }}'
       policy: bypass
     - domain: 'auth.{{ common_tld }}'
       policy: bypass
-    
+    - domain: '*.{{ common_tld }}'
+      policy: two_factor
 
 session:
   name: authelia_session
@@ -88,19 +91,19 @@ storage:
 notifier:
   disable_startup_check: true
 
-smtp:
-    username: {{ common_smtp_username }}
-    password: {{ common_smtp_password }}
-    host: {{ common_email_host }}
-    port: {{ common_email_port }}
-    sender: {{ application }}{{ common_email_to }}
-    subject: "Authelia request {title}"
-    startup_check_address: test{{ common_email_to }}
-    disable_require_tls: {{ 'false' if common_email_protocol=='tls' else 'true' }}
-    disable_html_emails: false
-    tls:
-      skip_verify: false
-      minimum_version: TLS1.2
+  smtp:
+      username: {{ common_smtp_username }}
+      password: {{ common_smtp_password }}
+      host: {{ common_email_host }}
+      port: {{ common_email_port }}
+      sender: {{ application }}{{ common_email_to }}
+      subject: "Authelia request {title}"
+      startup_check_address: test{{ common_email_to }}
+      disable_require_tls: {{ 'false' if common_email_protocol=='tls' else 'true' }}
+      disable_html_emails: false
+      tls:
+        skip_verify: false
+        minimum_version: TLS1.2
 
   # filesystem:
   #   filename: /config/notification.txt

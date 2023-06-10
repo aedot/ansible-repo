@@ -4,19 +4,18 @@
 
   vars:
     application: crowdsec
+
     docker_network: 
 
-    crowdsec_bouncer_key:
-      traefik: !vault |
-        $ANSIBLE_VAULT;1.1;AES256
-        31303332366436333164656635323433353634626565366238396337653837656536663937346164
-        3535343538613332393564323134353638343765366166330a363464316631623231333430386438
-        66343634326334333164333563323564356635663130363439353134646466336333616430383037
-        3265313432613132300a306132313431633266373262376332323131356665613136343462613135
-        33646365386237343763326566393631366633383136373563353134316265383439626364663861
-        3237613833376439336130626532396537376464643766653966
+    crowdsec_bouncer_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      37326565353433666162343833666131623732643662373466386637306630623730616133313436
+      3536306435643730623539353435356539313166386166630a666532346338373564353635313035
+      32393363386333633033613162633438326236323033613035393662386136333333366534306432
+      3130613937643531300a323766303037303964323034373034336561346662363436666562613133
+      32343363316431376239663562643436663730376530383837303666633064316438373161636563
+      6230333835623437623033643334386362376130613633386231
 
-    # Custom
     DISCORD_WEBHOOK: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       35636662383938636332316232646136646666336230656530626266386132663162366232323461
@@ -39,15 +38,6 @@
       61353036363865313963306439313032346366646238386566653865393438633161383965623332
       3532626334303162316338383935356164303130326261643230
 
-    # Console
-    ENROLL_KEY: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      36353231643163646562386663646530646334303837633534366431353564303261623563313464
-      3230313531663563343435363330633562633532613963330a373336613333373732636133643662
-      64663739313162663964636163656261303739323866613134353038326234383766306332653831
-      3361313434333761330a386563613831383766306132386131643439343435623933316437643932
-      63313332393635346662653330323732333461363131386163313037663835333464
-
 
   handlers:
     - name: Restart
@@ -66,17 +56,17 @@
         group: "{{ common_group }}"
         mode: "0771"
 
-    - name: Create config.yaml.local
+    - name: Create config.yaml
       ansible.builtin.copy:
         content: |
           common:
             log_level: info
           config_paths:
-            notification_dir: /etc/crowdsec/notifications.local/
+            notification_dir: /etc/crowdsec/notifications/
           api:
             server:
               log_level: warn
-        dest: "{{ config_directory }}/config.yaml.local"
+        dest: "{{ config_directory }}/config.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -87,60 +77,22 @@
         content: |
           ---
           filenames:
-            - /var/log/traefik/access.log
+            - /var/log/crowdsec/traefik.log
             - /var/log/traefik/traefik.log
           labels:
             type: traefik
           ---
           filenames:
-            - /var/log/authelia.log
+            - /var/log/crowdsec/authelia.log
           labels:
             type: authelia
+          ---
+          filenames:
+            - /var/log/auth.log
+            - /var/log/syslog
+          labels:
+            type: syslog
         dest: "{{ config_directory }}/acquis.yaml"
-        owner: "{{ common_root_id }}"
-        group: "{{ common_root_group }}"
-        mode: "0644"
-      notify: Restart
-
-    - name: Create email.yaml
-      ansible.builtin.copy:
-        content: |
-          type: email
-          name: email
-
-          log_level: info
-
-          {% raw %}
-          format: |
-            {{ range . -}}
-            {{ $alert := . -}}
-
-            {{ range .Decisions -}}
-            <p><a href=https://www.shodan.io/host/{{ .Value}}>{{ .Value}}</a> will get <b>{{ .Type}}</b> for next <b>{{ .Duration}}</b> for triggering <b>{{ .Scenario}}</b>.</p>
-            {{ end -}}
-
-            <ul>
-            {{ range .Events -}}
-            {{ range .Meta }}{{ if eq .Key "traefik_router_name"}}<li>{{ .Value}}: {{ end }}{{ end }}{{ range .Meta }}{{ if eq .Key "http_path" }}{{ .Value }}{{ end }}{{ end }}</li>
-            {{ end -}}
-            </ul>
-
-            {{ end -}}
-          {% endraw %}
-
-          smtp_host: {{ common_email_host }}
-          smtp_username: {{ common_smtp_username }}
-          smtp_password: {{ common_smtp_password }}
-          smtp_port: {{ common_email_port }}
-          sender_email: {{ common_email_username }}
-          receiver_emails:
-           - {{ application }}{{ common_email_to }}
-          encryption_type: starttls
-          auth_type: login
-          email_subject: CrowdSec Notification
-
-          timeout: 20s
-        dest: "{{ config_directory }}/email.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -150,9 +102,7 @@
       ansible.builtin.copy:
         content: |
           type: http
-
           name: discord
-
           log_level: info
 
           {% raw %}
@@ -189,40 +139,35 @@
           {% endraw %}
 
           url: "{{ DISCORD_WEBHOOK }}"
-
           method: POST
-
           headers:
             Content-Type: application/json
-
         dest: "{{ config_directory }}/discord.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
       notify: Restart
 
-    - name: Create profiles.yaml.local
+    - name: Create profiles.yaml
       ansible.builtin.copy:
         content: |
           name: default_ip_remediation
 
           debug: false
-
+         
           filters:
             - Alert.Remediation == true && Alert.GetScope() == "Ip"
-
+          
           decisions:
             - type: ban
-
               duration: 8766h
-
+          
           notifications:
-            - email
             - discord
-
+          
           on_success: break
           on_failure: break
-        dest: "{{ config_directory }}/profiles.yaml.local"
+        dest: "{{ config_directory }}/profiles.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -237,14 +182,24 @@
         published_ports:
           - "8383:8080"
         volumes:
+          - "{{ config_directory }}/acquis.yaml:/etc/crowdsec/acquis.yaml"
+
+          - "{{ config_directory }}/config.yaml:/etc/crowdsec/config.yaml"
+          - "{{ config_directory }}/profiles.yaml:/etc/crowdsec/profiles.yaml"
+
+          - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications/discord.yaml"
+
+          - "{{ config_directory}}/config:/etc/crowdsec"
           - "{{ config_directory }}/data:/var/lib/crowdsec/data"
-          - "{{ config_directory}}:/etc/crowdsec"
+
           - "{{ common_directory }}/authelia/logs/authelia.log:/var/log/authelia.log:ro"
+          - "{{ common_directory }}/traefik/logs:/var/log/traefik:ro"
           - "{{ common_directory }}/crowdsec/logs:/var/log/crowdsec:ro"
+          - /var/log/auth.log:/var/log/auth.log:ro
+          - /var/log/syslog:/var/log/syslog:ro
         env:
           TZ: "{{ common_timezone }}"
           PGID: "{{ common_user_id | string }}"
-          # Hub management
           COLLECTIONS: |-
             {{
               [
@@ -255,7 +210,6 @@
             }}
         networks:
           - name: "{{ docker_network }}"
-
         labels:
           '{
             "chadburn.enabled": "true",
@@ -268,12 +222,13 @@
 
     - name: Create traefik bouncer container
       community.docker.docker_container:
-        name: "{{ application }}-traefik-bouncer"
+        name: "bouncer-traefik"
         image: fbonalair/traefik-crowdsec-bouncer:latest
         state: started
         restart_policy: unless-stopped
         env:
-          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key.traefik }}"
+          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key }}"
           CROWDSEC_AGENT_HOST: crowdsec:8080
-          GIN_MODE: "release"
-          CROWDSEC_BOUNCER_LOG_LEVEL: "2"
+          GIN_MODE: release
+        networks:
+          - name: "{{ docker_network }}"
