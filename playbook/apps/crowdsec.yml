@@ -56,17 +56,17 @@
         group: "{{ common_group }}"
         mode: "0771"
 
-    - name: Create config.yaml
+    - name: Create config.yaml.local
       ansible.builtin.copy:
         content: |
           common:
             log_level: info
           config_paths:
-            notification_dir: /etc/crowdsec/notifications/
+            notification_dir: /etc/crowdsec/notifications.local/
           api:
             server:
               log_level: warn
-        dest: "{{ config_directory }}/config.yaml"
+        dest: "{{ config_directory }}/config.yaml.local"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -148,7 +148,7 @@
         mode: "0644"
       notify: Restart
 
-    - name: Create profiles.yaml
+    - name: Create profiles.yaml.local
       ansible.builtin.copy:
         content: |
           name: default_ip_remediation
@@ -167,7 +167,7 @@
           
           on_success: break
           on_failure: break
-        dest: "{{ config_directory }}/profiles.yaml"
+        dest: "{{ config_directory }}/profiles.yaml.local"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -184,10 +184,10 @@
         volumes:
           - "{{ config_directory }}/acquis.yaml:/etc/crowdsec/acquis.yaml"
 
-          - "{{ config_directory }}/config.yaml:/etc/crowdsec/config.yaml"
-          - "{{ config_directory }}/profiles.yaml:/etc/crowdsec/profiles.yaml"
+          - "{{ config_directory }}/config.yaml.local:/etc/crowdsec/config.yaml.local"
+          - "{{ config_directory }}/profiles.yaml.local:/etc/crowdsec/profiles.yaml.local"
 
-          - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications/discord.yaml"
+          - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications.local/discord.yaml"
 
           - "{{ config_directory}}/config:/etc/crowdsec"
           - "{{ config_directory }}/data:/var/lib/crowdsec/data"

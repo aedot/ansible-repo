@@ -15,7 +15,7 @@ server:
 log:
   level: debug
   format: json
-  file_path: /var/log/crowdsec/authelia.log
+  file_path: /var/log/authelia/authelia.log
   keep_stdout: true
 
 totp:
@@ -47,16 +47,14 @@ access_control:
   default_policy: deny
   rules:
     - domain: 'onboard.{{ common_tld }}'
-      resources:
-        - '^/j/'
-        - '^/join/'
-        - '^/setup/*'
-        - '^/static/'
       policy: bypass
+
     - domain: 'overseerr.{{ common_tld }}'
       policy: bypass
+
     - domain: 'auth.{{ common_tld }}'
       policy: bypass
+
     - domain: '*.{{ common_tld }}'
       policy: two_factor
 

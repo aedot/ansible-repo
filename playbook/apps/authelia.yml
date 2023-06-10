@@ -58,21 +58,21 @@
           '*': ignore
 
   tasks:
-    - name: Create config folder
+    - name: Create authelia folder
       ansible.builtin.file:
         path: "{{ config_directory }}/config"
         state: directory
-        owner: "{{ common_user }}"
-        group: "{{ common_group }}"
-        mode: "0755"
+        owner: "root"
+        group: "root"
+        mode: "0771"
 
-    - name: Template authelia config
+    - name: Template config
       ansible.builtin.template:
         src: "{{ files_directory }}/{{ item }}.j2"
         dest: "{{ config_directory }}/config/{{ item }}"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
-        mode: "0644"
+        mode: "0444"
       loop:
         - configuration.yml
         - users_database.yml
@@ -93,7 +93,6 @@
         volumes:
           - "{{ config_directory }}/config:/config"
           - "{{ config_directory }}/logs:/var/log/authelia"
-          - /var/log/crowdsec:/var/log/crowdsec
         labels:
           '{
             "traefik.enable": "true",
