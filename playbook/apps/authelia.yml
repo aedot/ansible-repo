@@ -93,6 +93,8 @@
         volumes:
           - "{{ config_directory }}/config:/config"
           - "{{ config_directory }}/logs:/var/log/authelia"
+
+          - /var/log/crowdsec:/var/log/crowdsec
         labels:
           '{
             "traefik.enable": "true",

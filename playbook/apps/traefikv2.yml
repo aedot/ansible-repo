@@ -60,6 +60,7 @@
           TZ: "{{ common_timezone }}"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
+          - /var/log/crowdsec/:/var/log/crowdsec/
 
           - "{{ config_directory }}:/etc/traefik/"
         labels:

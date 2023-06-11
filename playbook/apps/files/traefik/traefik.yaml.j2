@@ -68,6 +68,7 @@ entryPoints:
               - '*.{{ common_tld }}'
       middlewares:
         - securityHeaders@file
+        - crowdsec-bouncer@file
 
 certificatesResolvers:
   letsencrypt:
@@ -89,4 +90,8 @@ api:
 log:
   level: 'INFO'
   filePath: '/var/log/traefik/traefik.log'
+
+accessLog:
+  filePath: "/var/log/crowdsec/traefik.log"
+  bufferingSize: 50
 
