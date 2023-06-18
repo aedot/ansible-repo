@@ -21,7 +21,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0775"
 
     - name: copy config files
       ansible.builtin.template:
@@ -29,7 +29,7 @@
         dest: "{{ config_directory }}/config/{{ item }}"
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0775"
       loop:
         - services.yaml
         - settings.yaml
@@ -46,7 +46,7 @@
 
     - name: Create container
       community.docker.docker_container:
-        name: home
+        name: "{{ application }}"
         image: ghcr.io/benphelps/homepage:latest
         state: started
         restart_policy: unless-stopped
@@ -55,8 +55,10 @@
         networks:
           - name: "{{ docker_network }}"
         volumes:
-          - "{{ config_directory }}/config:/app/config"
           - /var/run/docker.sock:/var/run/docker.sock:ro
+
+          - "{{ config_directory }}/config:/app/config"
+
           - "{{ homepage_logos_remote_dir }}:/app/public/icons"
         env:
           PUID: "{{ common_user_id | string }}"
@@ -64,6 +66,7 @@
         labels:
           '{
             "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`home.{{ common_tld }}`)",
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
             "traefik.http.routers.{{ application }}.middlewares": "auth@file",

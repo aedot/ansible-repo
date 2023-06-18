@@ -64,7 +64,7 @@
         state: directory
         owner: "root"
         group: "root"
-        mode: "0771"
+        mode: "0775"
 
     - name: Template config
       ansible.builtin.template:

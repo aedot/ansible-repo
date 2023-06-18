@@ -1,5 +1,4 @@
 ---
-
 common_directory_storage: "/mnt/files"
 common_directory_download: "{{ common_directory_storage }}/Downloads"
 common_directory_tv: "{{ common_directory_storage }}/TV"

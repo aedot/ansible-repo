@@ -1,10 +1,10 @@
 ---
 
-- hosts:
+- hosts: 
 
   vars:
     application: agent
-    docker_network:
+    docker_network: 
 
   tasks:
     - name: Create config folder
@@ -28,7 +28,8 @@
           - name: "{{ docker_network }}"
         volumes:
           - /etc/localtime:/etc/localtime:ro
-          - "{{ config_directory }}:/data"
           - /var/run/docker.sock:/var/run/docker.sock
+
+          - "{{ config_directory }}:/data"
         security_opts:
           - no-new-privileges:true

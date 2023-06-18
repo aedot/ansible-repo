@@ -13,7 +13,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0775"
 
     - name: Create container
       community.docker.docker_container:

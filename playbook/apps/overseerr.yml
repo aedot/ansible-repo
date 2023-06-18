@@ -3,21 +3,31 @@
 - hosts: 
 
   vars:
-    application: adminer
+    application: overseerr
     docker_network: 
 
   tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: adminer:latest
+        image: sctx/overseerr:latest
         state: started
-        restart_policy: unless-stopped
-        published_ports:
-        - "8282:8080"
+        restart_policy: unless-stopped        
         env:
-          ADMINER_DEFAULT_SERVER: mariadb
-          Theme: dracula
+          TZ: "{{ common_timezone }}"
+        volumes:
+          - "{{ config_directory }}:/app/config"
+        user: "{{ common_user_id }}:{{ common_group_id }}"
+        published_ports:
+          - "5055:5055"
         networks:
           - name: "{{ docker_network }}"
         labels:

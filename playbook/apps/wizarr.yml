@@ -17,7 +17,7 @@
 
     - name: Create container
       community.docker.docker_container:
-        name: onboard
+        name: "{{ application }}"
         image: ghcr.io/wizarrrr/wizarr:latest
         state: started
         restart_policy: unless-stopped
@@ -25,8 +25,13 @@
           - "5690:5690"
         env:
           TZ: "{{ common_timezone }}"
-          DISABLE_BUILTIN_AUTH: false | string
-          APP_URL: "https://wizarr.{{ common_tld }}"
+          MIN_PASSWORD_LENGTH: "12"
+          MAX_PASSWORD_LENGTH: "42"
+          MIN_PASSWORD_UPPERCASE: "1"
+          MIN_PASSWORD_NUMBERS: "1"
+          MIN_PASSWORD_SPECIAL: "1"
+          DISABLE_BUILTIN_AUTH: "false"
+          APP_URL: "https://onboard.{{ common_tld }}"
         networks:
           - name: "{{ docker_network }}"
         volumes:
@@ -34,6 +39,7 @@
         labels:
           '{
             "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`onboard.{{ common_tld }}`)",
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
             "traefik.http.routers.{{ application }}.middlewares": "auth@file",

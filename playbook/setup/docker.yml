@@ -1,10 +1,10 @@
 ---
 
-- hosts: all
+- hosts: 
 
   vars:
     application: docker
-    host: staging
+    host: 
 
   handlers:
     - name: Reboot
@@ -134,7 +134,7 @@
       ansible.builtin.copy:
         content: |
           {
-            "dns": ["172.16.1.1"],
+            "dns": ["172.16.10.1"],
             "live-restore": true
           }
         dest: "/etc/docker/daemon.json"

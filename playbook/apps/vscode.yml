@@ -21,7 +21,15 @@
         state: directory
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
-        mode: "0755"
+        mode: "0775"
+
+    - name: Create repos folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}/repos"
+        state: directory
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0771"
 
     - name: Create container
       community.docker.docker_container:
@@ -31,14 +39,28 @@
         restart_policy: unless-stopped 
         volumes:
           - "{{ config_directory }}/config:/config"
+          
           - /apps:/defaults
         published_ports:
           - "8443:8443"
         env:
-          UID: "{{ common_root_id | string }}"
-          GID: "{{ common_root_group | string }}"
+          PUID: "{{ common_root_id | string }}"
+          PGID: "{{ common_root_group | string }}"
           TZ: "{{ common_timezone }}"
+          password: &vscode_password !vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            35613739613763343437353439323738643836616562646536386233396662306430653061653330
+            6265383365383031306462646436633965366161663532370a343332396338636136393933616561
+            37363337636564383762363239303037313465613261363534653762336166373135306434623361
+            6264623136303164640a613962663538633035386230643630346336373866303334653866653265
+            65396362656236633764663737373839623136653033613138633065303038646139
+         
+          SUDO_PASSWORD: *vscode_password
+
           DEFAULT_WORKSPACE: /defaults
+
+          CS_DISABLE_GETTING_STARTED_OVERRIDE: "true"
+
         networks:
               - name: "{{ docker_network }}"
         labels:

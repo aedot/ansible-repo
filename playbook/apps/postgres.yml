@@ -4,7 +4,6 @@
 
   vars:
     application: postgres
-
     docker_network: 
 
     postgres_password: !vault |

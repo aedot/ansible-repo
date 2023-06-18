@@ -29,7 +29,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0775"
 
     - name: Copy beets config files
       ansible.builtin.copy:
@@ -57,8 +57,9 @@
           - "{{ config_directory }}/plugins:/plugins"
           - "{{ config_directory }}/config:/config"
           - "{{ config_directory }}/scripts:/config/custom-cont-init.d"
-          - "{{ common_directory_audiobooks }}:/audiobooks"
           - "{{ config_directory }}/config/untagged:/untagged"
+          
+          - "{{ common_directory_audiobooks }}:/audiobooks"
         security_opts:
           - no-new-privileges:true
 
