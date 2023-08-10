@@ -42,4 +42,4 @@ common_startup_email: !vault |
 
 common_email_port: "587"
 common_email_host: "smtp.mail.me.com"
-common_email_protocol: ssl
+common_email_protocol: tls
