@@ -1,0 +1,48 @@
+---
+
+- hosts: 
+
+  vars:
+    application: whoogle
+
+    docker_network: 
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_root_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: benbusby/whoogle-search:latest
+        state: started
+        restart_policy: unless-stopped
+        user: whoogle
+        # pids_limit: 50
+        # mem_limit: 256mb
+        # memswap_limit: 256mb
+        tmpfs:
+          - /config/:size=10M,uid=927,gid=927,mode=1700
+          - /var/lib/tor/:size=15M,uid=927,gid=927,mode=1700
+          - /run/tor/:size=1M,uid=927,gid=927,mode=1700
+        security_opts:
+          - no-new-privileges:true
+        published_ports:
+          - "5000:5000"
+        volumes:
+          - "{{ config_directory }}:/data"
+        networks:
+          - name: "{{ docker_network }}"
+        labels:
+          '{
+            "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`search.{{ common_tld }}`)",
+            "traefik.http.routers.{{ application }}.entryPoints": "https",
+            "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
+            "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+          }'

@@ -47,7 +47,7 @@
           PUID: "{{ common_root_id | string }}"
           PGID: "{{ common_root_group | string }}"
           TZ: "{{ common_timezone }}"
-          password: &vscode_password !vault |
+          PASSWORD: &vscode_password !vault |
             $ANSIBLE_VAULT;1.1;AES256
             35613739613763343437353439323738643836616562646536386233396662306430653061653330
             6265383365383031306462646436633965366161663532370a343332396338636136393933616561

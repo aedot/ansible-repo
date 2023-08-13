@@ -1,0 +1,38 @@
+---
+
+- hosts: 
+
+  vars:
+    application: actual-budget
+
+    docker_network: 
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_root_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: actualbudget/actual-server:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "5006:5006"
+        volumes:
+          - "{{ config_directory }}:/data"
+        networks:
+          - name: "{{ docker_network }}"
+        labels:
+          '{
+            "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`budget.{{ common_tld }}`)",
+            "traefik.http.routers.{{ application }}.entryPoints": "https",
+            "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
+            "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+          }'

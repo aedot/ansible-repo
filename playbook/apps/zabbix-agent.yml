@@ -1,11 +1,11 @@
 ---
 
-- hosts: staging
+- hosts: 
 
   vars:
     application: zabbix-agent
     
-    docker_network: staging
+    docker_network: 
 
   tasks:
     - name: Create config folder
