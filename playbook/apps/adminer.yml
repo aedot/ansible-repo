@@ -17,7 +17,7 @@
         - "8282:8080"
         env:
           ADMINER_DEFAULT_SERVER: mariadb
-          Theme: dracula
+          ADMINER_DESIGN: dracula
         networks:
           - name: "{{ docker_network }}"
         labels:
