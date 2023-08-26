@@ -38,7 +38,7 @@
         - name: Create container
           community.docker.docker_container:
             name: "{{ application }}"
-            image: ghcr.io/analogj/scrutiny:v0.6.0-omnibus
+            image: ghcr.io/analogj/scrutiny:master-omnibus
             state: started
             restart_policy: unless-stopped
             env:
@@ -46,9 +46,10 @@
             capabilities:
               - SYS_RAWIO
             published_ports:
-              - "8383:8080"
+              - "8484:8080"
             volumes:
               - /run/udev:/run/udev:ro
+              - /dev/disk:/dev/disk:ro
               - "{{ config_directory }}/config:/opt/scrutiny/config"
               - "{{ config_directory }}/influxdb:/opt/scrutiny/influxdb"
             devices: "{{ lsblk_disks.stdout_lines }}"

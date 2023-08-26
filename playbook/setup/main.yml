@@ -45,13 +45,13 @@
         - python3-pip
         - python3-setuptools
 
-    - name: Disable motd files
-      ansible.builtin.file:
-        path: "{{ item }}"
-        mode: "-x"
-      loop:
-        - /etc/update-motd.d/50-motd-news
-        - /etc/update-motd.d/10-help-text
+    # - name: Disable motd files
+    #   ansible.builtin.file:
+    #     path: "{{ item }}"
+    #     mode: "-x"
+    #   loop:
+    #     - /etc/update-motd.d/50-motd-news
+    #     - /etc/update-motd.d/10-help-text
 
     - name: No password sudo
       community.general.sudoers:
@@ -69,22 +69,15 @@
           - unzip
           - curl
           - wget
+          - qemu-guest-agent
+          - ufw
           - dnsutils
-          - zfsutils-linux
           - jq
           - ripgrep
-          - update-notifier-common
           - unattended-upgrades
           - apt-show-versions
-          - qemu-guest-agent
           - gnupg
-          - ufw
-        state: present
-
-    - name: Install snap packages
-      community.general.snap:
-        name:
-          - yq
+          
         state: present
 
     - name: Remove packages
