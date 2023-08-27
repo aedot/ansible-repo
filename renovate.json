@@ -3,26 +3,28 @@
 
   "rebaseWhen": "conflicted",
 
-  "major": {
-    "dependencyDashboardApproval": true
-  },
+  "dependencyDashboard": true,
 
-  "minor": {
-    "automerge": true
-  },
-  "patch": {
-    "automerge": true
-  },
-  "pin": {
-    "automerge": true
-  },
+  // "major": {
+  //   "dependencyDashboardApproval": true
+  // },
+
+  // "minor": {
+  //   "automerge": true
+  // },
+  // "patch": {
+  //   "automerge": true
+  // },
+  // "pin": {
+  //   "automerge": true
+  // },
 
   "ansible": {
-    "fileMatches": [
-      "**/*.yml", "**/*.yaml"
+    "fileMatch": [
+      "(^|/)tasks/[^/]+\\.ya?ml$"
     ]
   },
-
+  
   "timezone": "America/Los_Angeles",
 
   "schedule": [
@@ -46,7 +48,7 @@
     {
       "matchDatasources": ["docker"],
       "matchCurrentVersion": "/localhost|latest/",
-      "enabled": false,
+      "enabled": false
     },
     /*
       override Docker datasource defaults
