@@ -18,8 +18,8 @@
   },
 
   "ansible": {
-    "fileMatch": [
-      "(^|/)tasks/[^/]+\\.ya?ml$"
+    "fileMatches": [
+      "**/*.yml", "**/*.yaml"
     ]
   },
 
