@@ -43,36 +43,44 @@
   
   "packageRules": [
     /* Ignore latest and localhost tags */
-    // {
-    //   "matchDatasources": ["docker"],
-    //   "matchCurrentVersion": "/localhost|latest/"
-    // },
+    {
+      "matchDatasources": ["docker"],
+      "matchCurrentVersion": "/localhost|latest/",
+      "enabled": false,
+    },
     /*
-      uses Docker datasource defaults
+      override Docker datasource defaults
       https://docs.renovatebot.com/modules/datasource/#docker-datasource
     */
     {
-      "matchDepTypes": ["docker"],
-      "matchUpdateTypes": ["pin"],
-      "commitMessageTopic": "{{{depName}}} Docker tag",
-      "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
+      "matchDatasources": ["docker"],
+      "commitMessageTopic": "version",
       "digest": {
-        "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
-        "commitMessageExtra": "to {{newDigestShort}}",
-        "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
+        "commitMessageTopic": "digest",
         "group": {
-          "commitMessageTopic": "{{{groupName}}}",
-          "commitMessageExtra": ""
+          "commitMessageTopic": "digest"
         }
       },
       "pin": {
-        "commitMessageExtra": "",
-        "groupName": "Docker digests",
         "group": {
-          "commitMessageTopic": "{{{groupName}}}",
-          "branchTopic": "digests-pin"
+          "commitMessageTopic": "version"
         }
+      },
+      "group": {
+        "commitMessageTopic": "version"
       }
+    },
+    /* actualbudget */
+    {
+      "matchPackagePatterns": [".*\\/actual-server"],
+      "customChangelogUrl": "https://github.com/actualbudget/actual-server",
+      "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)"
+    },
+
+    /* authelia */
+    {
+      "matchPackagePatterns": [".*\\/authelia"],
+      "customChangelogUrl": "https://github.com/authelia/authelia"
     }
   
   ],
