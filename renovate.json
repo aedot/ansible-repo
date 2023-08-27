@@ -46,7 +46,33 @@
     {
       "matchDatasources": ["docker"],
       "matchCurrentVersion": "/localhost|latest/"
+    },
+    /*
+      uses Docker datasource defaults
+      https://docs.renovatebot.com/modules/datasource/#docker-datasource
+    */
+    {
+      "commitMessageTopic": "{{{depName}}} Docker tag",
+      "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
+      "digest": {
+        "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
+        "commitMessageExtra": "to {{newDigestShort}}",
+        "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
+        "group": {
+          "commitMessageTopic": "{{{groupName}}}",
+          "commitMessageExtra": ""
+        }
+      },
+      "pin": {
+        "commitMessageExtra": "",
+        "groupName": "Docker digests",
+        "group": {
+          "commitMessageTopic": "{{{groupName}}}",
+          "branchTopic": "digests-pin"
+        }
+      }
     }
+  
   ],
 
   "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
