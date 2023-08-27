@@ -31,7 +31,7 @@
     - name: Create "{{ application }}" container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/dgtlmoon/changedetection.io:latest
+        image: ghcr.io/dgtlmoon/changedetection.io:0.43
         state: started
         restart_policy: unless-stopped
         volumes:
