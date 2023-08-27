@@ -2,5 +2,16 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base"
+  ],
+  "prHeader": "aedotHeader",
+  "assignees": [
+    "aedot"
+  ],
+  "labels": ["dependencies-label"],
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["docker"],
+      "labels": ["docker-label"]
+    }
   ]
 }
