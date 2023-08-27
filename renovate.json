@@ -43,15 +43,17 @@
   
   "packageRules": [
     /* Ignore latest and localhost tags */
-    {
-      "matchDatasources": ["docker"],
-      "matchCurrentVersion": "/localhost|latest/"
-    },
+    // {
+    //   "matchDatasources": ["docker"],
+    //   "matchCurrentVersion": "/localhost|latest/"
+    // },
     /*
       uses Docker datasource defaults
       https://docs.renovatebot.com/modules/datasource/#docker-datasource
     */
     {
+      "matchDepTypes": ["docker"],
+      "matchUpdateTypes": ["pin"],
       "commitMessageTopic": "{{{depName}}} Docker tag",
       "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
       "digest": {
