@@ -1,17 +1,53 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base"
+
+  "rebaseWhen": "conflicted",
+
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+
+  "minor": {
+    "automerge": true
+  },
+  "patch": {
+    "automerge": true
+  },
+  "pin": {
+    "automerge": true
+  },
+
+  "ansible": {
+    "fileMatch": [
+      "(^|/)tasks/[^/]+\\.ya?ml$"
+    ]
+  },
+
+  "timezone": "America/Los_Angeles",
+
+  "schedule": [
+    "at any time"
   ],
-  "prHeader": "aedotHeader",
-  "assignees": [
-    "aedot"
-  ],
-  "labels": ["dependencies-label"],
+
+  "reviewers": ["aedot"],
+
+  "commitMessagePrefix": "{{depName}}:",
+  "commitMessageAction": "Update",
+  "commitMessageTopic": "version",
+  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
+
+  /*
+    Renovate will evaluate all packageRules and not stop once it gets a first match
+    You should order your packageRules in order of importance so that later rules can override settings from earlier rules if needed.
+  */
+  
   "packageRules": [
+    /* Ignore latest and localhost tags */
     {
-      "matchPackagePatterns": ["docker"],
-      "labels": ["docker-label"]
+      "matchDatasources": ["docker"],
+      "matchCurrentVersion": "/localhost|latest/"
     }
-  ]
+  ],
+
+  "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
 }
