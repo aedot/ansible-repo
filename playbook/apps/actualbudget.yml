@@ -19,7 +19,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: actualbudget/actual-server:23.80.0
+        image: actualbudget/actual-server:22.12.9
         state: started
         restart_policy: unless-stopped
         published_ports:

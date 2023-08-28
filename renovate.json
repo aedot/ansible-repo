@@ -1,91 +1,67 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-
-  "rebaseWhen": "conflicted",
-
   "dependencyDashboard": true,
-
-  // "major": {
-  //   "dependencyDashboardApproval": true
-  // },
-
-  // "minor": {
-  //   "automerge": true
-  // },
-  // "patch": {
-  //   "automerge": true
-  // },
-  // "pin": {
-  //   "automerge": true
-  // },
-
-  "ansible": {
-    "fileMatch": [
-      "(^|/)tasks/[^/]+\\.ya?ml$"
-    ]
-  },
-  
-  "timezone": "America/Los_Angeles",
-
-  "schedule": [
-    "at any time"
+  "dependencyDashboardAutoclose": true,
+  "extends": [
+    "config:base",
+    "schedule:at any time"
   ],
 
-  "reviewers": ["aedot"],
-
-  "commitMessagePrefix": "{{depName}}:",
-  "commitMessageAction": "Update",
-  "commitMessageTopic": "version",
-  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
-
-  /*
-    Renovate will evaluate all packageRules and not stop once it gets a first match
-    You should order your packageRules in order of importance so that later rules can override settings from earlier rules if needed.
-  */
-  
   "packageRules": [
-    /* Ignore latest and localhost tags */
+    {
+      "description": "Automatically merges minor and patch-level updates",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Automatically creates a PR whenever there is a new major Renovate version",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "prCreation": "immediate"
+    },
+
+    // Ignore latest and localhost tags
     {
       "matchDatasources": ["docker"],
       "matchCurrentVersion": "/localhost|latest/",
       "enabled": false
     },
-    /*
-      override Docker datasource defaults
-      https://docs.renovatebot.com/modules/datasource/#docker-datasource
-    */
+
     {
       "matchDatasources": ["docker"],
-      "commitMessageTopic": "version",
+      "commitMessageTopic": "{{{depName}}} Docker tag",
+      "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
       "digest": {
-        "commitMessageTopic": "digest",
+        "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
+        "commitMessageExtra": "to {{newDigestShort}}",
+        "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
         "group": {
-          "commitMessageTopic": "digest"
+          "commitMessageTopic": "{{{groupName}}}",
+          "commitMessageExtra": ""
         }
       },
       "pin": {
+        "commitMessageExtra": "",
+        "groupName": "Docker digests",
         "group": {
-          "commitMessageTopic": "version"
+          "commitMessageTopic": "{{{groupName}}}",
+          "branchTopic": "digests-pin"
         }
-      },
-      "group": {
-        "commitMessageTopic": "version"
       }
-    },
-    /* actualbudget */
-    {
-      "matchPackagePatterns": [".*\\/actual-server"],
-      "customChangelogUrl": "https://github.com/actualbudget/actual-server",
-      "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)"
-    },
-
-    /* authelia */
-    {
-      "matchPackagePatterns": [".*\\/authelia"],
-      "customChangelogUrl": "https://github.com/authelia/authelia"
     }
-  
   ],
 
-  "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
+
+
+  "rangeStrategy": "pin",
+  "rebaseWhen": "behind-base-branch",
+  "timezone": "America/Los_Angeles",
+  "reviewers": ["aedot"],
+
+  "commitMessagePrefix": "{{depName}}:",
+  "commitMessageAction": "Update",
+  "commitMessageTopic": "dependency {{depName}}",
+  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}"
+
 }
