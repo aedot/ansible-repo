@@ -11,13 +11,18 @@
   },
 
   "dependencyDashboard": true,
+  "major": {
+    "dependencyDashboardApproval": true
+  },
   "dependencyDashboardAutoclose": true,
 
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "conflicted",
+
     "timezone": "America/Los_Angeles",
     "schedule": [
       "at any time"
     ],
+
     "reviewers": ["aedot"],
     "assignees": ["aedot"],
   
@@ -48,12 +53,10 @@
       "enabled": true,
       "matchPaths": ["playbooks/apps/*.yml"],
       "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook"
-    },
+    }
 
-    {
-      "matchPackagePatterns": [".*\\/actual-server"],
-      "customChangelogUrl": "https://github.com/actualbudget/actual-server",
-      "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)",
-      }
-    ]
+    ],
+
+  "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
+
 }
