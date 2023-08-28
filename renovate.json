@@ -2,6 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "dependencyDashboard": true,
   "dependencyDashboardAutoclose": true,
+
+  "ansible": {
+    "fileMatch": [
+      "(^|/)tasks/[^/]+\\.ya?ml$"
+    ]
+  },
+  
   "extends": [
     "config:base"
   ],
@@ -27,56 +34,27 @@
       "enabled": false
     },
 
-    // {
-    //   "matchDatasources": ["docker"],
-    //   "commitMessageTopic": "{{{depName}}} Docker tag",
-    //   "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
-    //   "digest": {
-    //     "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
-    //     "commitMessageExtra": "to {{newDigestShort}}",
-    //     "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
-    //     "group": {
-    //       "commitMessageTopic": "{{{groupName}}}",
-    //       "commitMessageExtra": ""
-    //     }
-    //   },
-    //   "pin": {
-    //     "commitMessageExtra": "",
-    //     "groupName": "Docker digests",
-    //     "group": {
-    //       "commitMessageTopic": "{{{groupName}}}",
-    //       "branchTopic": "digests-pin"
-    //     }
-    //   }
-    // }
-
-      // override Docker datasource defaults
-      // https://docs.renovatebot.com/modules/datasource/#docker-datasource
-
     {
       "matchDatasources": ["docker"],
-      "commitMessageTopic": "version",
+      "commitMessageTopic": "{{{depName}}} Docker tag",
+      "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
       "digest": {
-        "commitMessageTopic": "digest",
+        "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
+        "commitMessageExtra": "to {{newDigestShort}}",
+        "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
         "group": {
-          "commitMessageTopic": "digest"
+          "commitMessageTopic": "{{{groupName}}}",
+          "commitMessageExtra": ""
         }
       },
       "pin": {
+        "commitMessageExtra": "",
+        "groupName": "Docker digests",
         "group": {
-          "commitMessageTopic": "version"
+          "commitMessageTopic": "{{{groupName}}}",
+          "branchTopic": "digests-pin"
         }
-      },
-      "group": {
-        "commitMessageTopic": "version"
       }
-    },
-
-    // actualbudget
-    {
-      "matchPackagePatterns": [".*\\/actual-server"],
-      "customChangelogUrl": "https://github.com/actualbudget/actual-server",
-      "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)",
     }
   ],
 
