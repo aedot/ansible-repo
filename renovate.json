@@ -45,12 +45,8 @@
     {
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
-      "enabled": true
-    },
-
-    {
+      "enabled": true,
       "matchPaths": ["playbooks/apps/*.yml"],
-      "matchPackageTypes": ["docker"],
       "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook"
     },
 
