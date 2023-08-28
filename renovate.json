@@ -18,18 +18,19 @@
 
   "rebaseWhen": "conflicted",
 
-    "timezone": "America/Los_Angeles",
-    "schedule": [
-      "at any time"
-    ],
+  "timezone": "America/Los_Angeles",
+  "schedule": [
+    "at any time"
+  ],
 
-    "reviewers": ["aedot"],
-    "assignees": ["aedot"],
-  
-    "commitMessagePrefix": "{{depName}}:",
-    "commitMessageAction": "Update",
-    "commitMessageTopic": "dependency {{depName}}",
-    "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
+  "assignees": ["aedot"],
+
+  "labels": ["dependencies"],
+
+  "commitMessagePrefix": "{{depName}}:",
+  "commitMessageAction": "Update",
+  "commitMessageTopic": "dependency {{depName}}",
+  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
 
 
   "packageRules": [
@@ -46,6 +47,10 @@
       "prCreation": "immediate"
     },
 
+    {
+      "matchPackagePatterns": ["docker"],
+      "labels": ["docker"]
+    }
 
     ],
 
