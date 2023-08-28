@@ -3,7 +3,7 @@
   "dependencyDashboard": true,
   "dependencyDashboardAutoclose": true,
 
-  "ansible": {
+  "docker": {
     "fileMatch": [
       "(^|/)tasks/[^/]+\\.ya?ml$"
     ]
@@ -31,7 +31,7 @@
     {
       "matchDatasources": ["docker"],
       "matchCurrentVersion": "/localhost|latest/",
-      "enabled": false
+      "enabled": true
     },
 
     {
