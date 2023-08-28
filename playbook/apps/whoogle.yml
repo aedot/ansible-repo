@@ -19,7 +19,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: benbusby/whoogle-search:0.8.1
+        image: benbusby/whoogle-search:0.8.3
         state: started
         restart_policy: unless-stopped
         user: whoogle
