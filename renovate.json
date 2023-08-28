@@ -1,17 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "dependencyDashboard": true,
-  "dependencyDashboardAutoclose": true,
+  "extends": [
+    "config:base"
+  ],
 
   "ansible": {
     "fileMatch": [
       "(^|/)tasks/[^/]+\\.ya?ml$"
     ]
   },
+
+  "dependencyDashboard": true,
+  "dependencyDashboardAutoclose": true,
+
+  "rebaseWhen": "behind-base-branch",
+    "timezone": "America/Los_Angeles",
+    "schedule": [
+      "at any time"
+    ],
+    "reviewers": ["aedot"],
+    "assignees": ["aedot"],
   
-  "extends": [
-    "config:base"
-  ],
+    "commitMessagePrefix": "{{depName}}:",
+    "commitMessageAction": "Update",
+    "commitMessageTopic": "dependency {{depName}}",
+    "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
+
 
   "packageRules": [
     {
@@ -26,8 +40,7 @@
       "automerge": false,
       "prCreation": "immediate"
     },
-
-    // Ignore major updates
+    
     {
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
@@ -35,25 +48,17 @@
     },
 
     {
+      "matchPaths": ["playbooks/apps/*.yml"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchPackageTypes": ["docker"],
+      "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook",
+      "commitMessageBody": "Update {{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}} of {{depName}}"
+    },
+
+    {
       "matchPackagePatterns": [".*\\/actual-server"],
       "customChangelogUrl": "https://github.com/actualbudget/actual-server",
       "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)",
-    }
-  ],
-
-
-
-  "rangeStrategy": "pin",
-  "rebaseWhen": "behind-base-branch",
-  "timezone": "America/Los_Angeles",
-  "schedule": [
-    "at any time"
-  ],
-  "reviewers": ["aedot"],
-
-  "commitMessagePrefix": "{{depName}}:",
-  "commitMessageAction": "Update",
-  "commitMessageTopic": "dependency {{depName}}",
-  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}"
-
+      }
+    ]
 }
