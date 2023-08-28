@@ -50,7 +50,6 @@
 
     {
       "matchPaths": ["playbooks/apps/*.yml"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
       "matchPackageTypes": ["docker"],
       "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook"
     },
