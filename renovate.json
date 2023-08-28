@@ -34,6 +34,7 @@
       "automerge": true,
       "automergeType": "branch"
     },
+
     {
       "description": "Automatically creates a PR whenever there is a new major Renovate version",
       "matchUpdateTypes": ["major"],
@@ -51,8 +52,7 @@
       "matchPaths": ["playbooks/apps/*.yml"],
       "matchUpdateTypes": ["major", "minor", "patch"],
       "matchPackageTypes": ["docker"],
-      "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook",
-      "commitMessageBody": "Update {{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}} of {{depName}}"
+      "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook"
     },
 
     {
