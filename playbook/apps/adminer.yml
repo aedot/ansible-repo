@@ -10,7 +10,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: adminer:latest
+        image: adminer:4.8.0
         state: started
         restart_policy: unless-stopped
         published_ports:

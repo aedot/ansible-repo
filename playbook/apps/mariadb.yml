@@ -45,7 +45,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: linuxserver/mariadb:latest
+        image: linuxserver/mariadb:10.11.1
         state: started
         restart_policy: unless-stopped
         published_ports:

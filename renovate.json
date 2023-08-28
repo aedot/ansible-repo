@@ -52,6 +52,12 @@
     {
       "matchPackagePatterns": ["docker"],
       "labels": ["docker"]
+    },
+
+    {
+      "matchDatasources": ["docker"],
+      "matchCurrentVersion": "/localhost|latest/",
+      "enabled": false
     }
 
     ],
