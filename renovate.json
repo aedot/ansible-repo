@@ -3,7 +3,7 @@
   "dependencyDashboard": true,
   "dependencyDashboardAutoclose": true,
 
-  "docker": {
+  "ansible": {
     "fileMatch": [
       "(^|/)tasks/[^/]+\\.ya?ml$"
     ]
@@ -27,34 +27,17 @@
       "prCreation": "immediate"
     },
 
-    // Ignore latest and localhost tags
+    // Ignore major updates
     {
       "matchDatasources": ["docker"],
-      "matchCurrentVersion": "/localhost|latest/",
+      "matchUpdateTypes": ["major"],
       "enabled": true
     },
 
     {
-      "matchDatasources": ["docker"],
-      "commitMessageTopic": "{{{depName}}} Docker tag",
-      "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{{prettyNewMajor}}}{{else}}{{{prettyNewVersion}}}{{/if}}{{/if}}",
-      "digest": {
-        "branchTopic": "{{{depNameSanitized}}}-{{{currentValue}}}",
-        "commitMessageExtra": "to {{newDigestShort}}",
-        "commitMessageTopic": "{{{depName}}}{{#if currentValue}}:{{{currentValue}}}{{/if}} Docker digest",
-        "group": {
-          "commitMessageTopic": "{{{groupName}}}",
-          "commitMessageExtra": ""
-        }
-      },
-      "pin": {
-        "commitMessageExtra": "",
-        "groupName": "Docker digests",
-        "group": {
-          "commitMessageTopic": "{{{groupName}}}",
-          "branchTopic": "digests-pin"
-        }
-      }
+      "matchPackagePatterns": [".*\\/actual-server"],
+      "customChangelogUrl": "https://github.com/actualbudget/actual-server",
+      "prBodyNotes": "[releases.md](https://github.com/actualbudget/docs/blob/master/docs/releases.md)",
     }
   ],
 
