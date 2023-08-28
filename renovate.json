@@ -23,6 +23,8 @@
     "at any time"
   ],
 
+  "prHeader": "ansible-repo",
+
   "assignees": ["aedot"],
 
   "labels": ["dependencies"],
