@@ -11,7 +11,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/premoweb/chadburn:1.0.6
+        image: ghcr.io/premoweb/chadburn:1.0.7
         state: started
         restart_policy: unless-stopped
         command:
