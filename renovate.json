@@ -37,7 +37,6 @@
       "description": "Automatically merges minor and patch-level updates",
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true,
-      // "automergeType": "branch"
     },
 
     {
@@ -46,14 +45,7 @@
       "automerge": false,
       "prCreation": "immediate"
     },
-    
-    // {
-    //   "matchDatasources": ["docker"],
-    //   "matchUpdateTypes": ["major"],
-    //   "enabled": true,
-    //   "matchPaths": ["playbooks/apps/*.yml"],
-    //   "commitMessageTopic": "chore(deps): update Docker images in Ansible playbook"
-    // }
+
 
     ],
 
