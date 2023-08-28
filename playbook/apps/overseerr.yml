@@ -18,7 +18,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: sctx/overseerr:1.33.0
+        image: sctx/overseerr:1.33.2
         state: started
         restart_policy: unless-stopped        
         env:
