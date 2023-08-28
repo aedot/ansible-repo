@@ -41,7 +41,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: cloudflare/cloudflared:2023.8.0
+        image: cloudflare/cloudflared:2023.8.1
         state: started
         restart_policy: always
         command: "tunnel --config /home/nonroot/.cloudflared/config.yml run {{ UUID }}"
