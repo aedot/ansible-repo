@@ -34,7 +34,7 @@
     - name: Create container
       community.docker.docker_container:
         name: code
-        image: lscr.io/linuxserver/code-server:4.14.0
+        image: lscr.io/linuxserver/code-server:4.16.1
         state: started
         restart_policy: unless-stopped 
         volumes:
