@@ -3,8 +3,7 @@
   "dependencyDashboard": true,
   "dependencyDashboardAutoclose": true,
   "extends": [
-    "config:base",
-    "schedule:at any time"
+    "config:base"
   ],
 
   "packageRules": [
@@ -57,6 +56,9 @@
   "rangeStrategy": "pin",
   "rebaseWhen": "behind-base-branch",
   "timezone": "America/Los_Angeles",
+  "schedule": [
+    "at any time"
+  ],
   "reviewers": ["aedot"],
 
   "commitMessagePrefix": "{{depName}}:",
