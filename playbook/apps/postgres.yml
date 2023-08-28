@@ -35,7 +35,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: postgres:15.3
+        image: postgres:15.4
         state: started
         restart_policy: unless-stopped
         published_ports:
