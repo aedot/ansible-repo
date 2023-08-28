@@ -223,7 +223,7 @@
     - name: Create traefik bouncer container
       community.docker.docker_container:
         name: "bouncer-traefik"
-        image: fbonalair/traefik-crowdsec-bouncer:v0.0.9
+        image: fbonalair/traefik-crowdsec-bouncer:0.5.0
         state: started
         restart_policy: unless-stopped
         env:
