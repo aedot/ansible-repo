@@ -38,7 +38,7 @@
         - name: Create container
           community.docker.docker_container:
             name: "{{ application }}"
-            image: ghcr.io/analogj/scrutiny:master-omnibus
+            image: ghcr.io/analogj/scrutiny:v0.7.0
             state: started
             restart_policy: unless-stopped
             env:
