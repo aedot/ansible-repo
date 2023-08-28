@@ -67,7 +67,7 @@
     - name: Create {{ application }}-ui container
       community.docker.docker_container:
         name: "{{ application }}-ui"
-        image: wheelybird/ldap-user-manager:v1.5
+        image: wheelybird/ldap-user-manager:v1.11
         state: started
         restart_policy: unless-stopped
         published_ports:
