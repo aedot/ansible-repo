@@ -23,7 +23,7 @@
     "at any time"
   ],
 
-  "prHeader": "ansible-repo",
+  "rangeStrategy": "pin",
 
   "assignees": ["aedot"],
 
@@ -38,8 +38,8 @@
   "packageRules": [
     {
       "description": "Automatically merges minor and patch-level updates",
-      "matchUpdateTypes": ["minor", "patch", "digest"],
-      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch", "digest","pin"],
+      "automerge": true
     },
 
     {
