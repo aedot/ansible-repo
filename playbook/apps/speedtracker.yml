@@ -36,7 +36,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/alexjustesen/speedtest-tracker:v0.11.17
+        image: ghcr.io/alexjustesen/speedtest-tracker:v0.11.20
         state: started
         restart_policy: unless-stopped 
         volumes:
