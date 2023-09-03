@@ -1,0 +1,69 @@
+---
+
+- hosts: 
+
+  vars:
+    application: grafana
+    docker_network: 
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ config_directory }}/{{ item }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+      loop:
+        - "provisioning"
+        - "provisioning/datasources"
+        - "provisioning/dashboards"
+        - "data"
+        - "data/plugins"
+
+    - name: Download plugins
+      ansible.builtin.unarchive:
+        src: "https://grafana.com/api/plugins/{{ item.name }}/versions/{{ item.version }}/download"
+        dest: "{{ config_directory }}/data/plugins"
+        remote_src: true
+      loop:
+        - name: grafana-piechart-panel
+          version: 1.6.2
+        
+        - name: grafana-clock-panel
+          version: 2.1.3
+
+        - name: grafana-worldmap-panel
+          version: 1.0.6
+        
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: grafana/grafana:10.1.1
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "3000:3000"
+        volumes:
+          - "{{ config_directory }}/data:/var/lib/grafana"
+          - "{{ config_directory }}/provisioning:/etc/grafana/provisioning"
+        networks:
+          - name: "{{ docker_network }}"

@@ -4,7 +4,7 @@
 
   vars:
     application: docker
-    host: 
+    network: 
 
   handlers:
     - name: Reboot
@@ -118,7 +118,7 @@
 
     - name: Create Docker networks
       community.docker.docker_network:
-        name: "{{ host }}"
+        name: "{{ network }}"
       notify: Restart
 
     - name: Enable swap limit support
