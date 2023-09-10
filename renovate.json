@@ -17,7 +17,7 @@
 
   "timezone": "America/Los_Angeles",
   "schedule": [
-    "after 10pm every friday, before 5am every sunday"
+    "after 10pm every friday"
   ],
 
   "rangeStrategy": "pin",
