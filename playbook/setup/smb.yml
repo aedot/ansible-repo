@@ -25,12 +25,6 @@
         name: smbd
         state: started
         enabled: true
-
-    - name: Create Samba users
-      ansible.builtin.command: 
-        "smbpasswd -a {{ users.name }} '{{ users.password }}'"
-      with_items: 
-        "{{ users }}"
     
     - name: Configure
       ansible.builtin.copy:
@@ -49,23 +43,6 @@
             path = {{ common_directory_storage }}/{{item.name}}
             read only = no
             browseable = yes
-            valid users = {{users.name}}
-
-          [Backups]
-            comment = Backup save location
-            path = {{ common_directory_backup }}/{{item.name}}
-            read only = no
-            writable = yes
-            browseable = yes
-            valid users = {{users.name}}
-
-          [Documents]
-            comment = Backup save location
-            path = {{ common_directory_document }}/{{item.name}}
-            read only = no
-            writable = yes
-            browseable = yes
-            valid users = {{users.name}}
 
         dest: /etc/samba/smb.conf
         validate: "testparm %s --suppress-prompt"
@@ -76,3 +53,7 @@
       community.general.ufw:
         name: samba
         rule: allow
+    
+    - name: Reminder
+      ansible.builtin.debug:
+        msg: Create an smb password using `sudo smbpasswd aedot`
