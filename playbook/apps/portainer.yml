@@ -1,0 +1,32 @@
+---
+
+- hosts: 
+
+  vars:
+    application: portainer
+
+    docker_network: 
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: portainer/portainer-ce:2.19.0
+        state: started
+        restart_policy: unless-stopped
+        volumes:
+          - "{{ config_directory }}:/data"
+          - /var/run/docker.sock:/var/run/docker.sock
+        published_ports:
+        - "9000:9000"
+
+
+
