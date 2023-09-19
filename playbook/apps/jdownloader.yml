@@ -1,0 +1,39 @@
+---
+
+- hosts: 
+
+  vars:
+    application: jdownloader
+
+    docker_network: 
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_root_group }}"
+        mode: "0771"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: jlesage/jdownloader-2:v23.06.1
+        state: started
+        restart_policy: unless-stopped
+        env:
+          TZ: "{{ common_timezone }}"
+          USER_ID: "{{ common_user_id | string }}"
+          GROUP_ID: "{{ common_root_group | string }}"
+          DISPLAY_WIDTH: "1920"
+          DISPLAY_HEIGHT: "1080"
+          KEEP_APP_RUNNING: "1"
+          UMASK: "022"
+        volumes:
+          - "{{ config_directory }}:/config"
+          - "{{ common_directory_download }}:/output"
+        published_ports:
+          - "5800:5800"
+        networks:
+          - name: "{{ docker_network }}"
