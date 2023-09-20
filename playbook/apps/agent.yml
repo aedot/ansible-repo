@@ -18,7 +18,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: portainer/agent:2.19.0
+        image: portainer/agent:2.19.1
         pull: true
         state: started
         restart_policy: always
