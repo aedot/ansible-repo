@@ -1,6 +1,6 @@
 ---
 
-- hosts: 
+- hosts:
 
   vars:
     application: homepage
@@ -18,11 +18,13 @@
   tasks:
     - name: Create config folder
       ansible.builtin.file:
-        path: "{{ config_directory }}/config"
+        path: "{{ config_directory }}"
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
         mode: "0771"
+      tags:
+        - config
 
     - name: Create icons folder
       ansible.builtin.file:
@@ -32,24 +34,24 @@
         group: "{{ common_group }}"
         mode: "0771"
 
-    - name: Synchronise config
+    - name: Synchronize config
       ansible.builtin.template:
-        src: "{{ item }}"
-        dest: "{{ config_directory }}/config/{{ item | basename | regex_replace('\\.j2$', '') }}"
+        src: "{{ item.path }}"
+        dest: "{{ config_directory }}/config/{{ item.path | basename | regex_replace('\\.j2$', '') }}"
         mode: "0664"
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-      loop: 
-        "{{ query('fileglob', files_directory + '/config/*') }}"
+      with_fileglob: 
+        - "{{ files_directory }}/config/"
       tags:
         - config
 
     - name: Copy icons
       ansible.builtin.copy:
-        src: "{{ homepage_logos_local_dir }}/"
-        dest: "{{ homepage_logos_remote_dir }}/"
-        owner: "{{ common_user_id }}"
-        group: "{{ common_group_id }}"
+        src: "{{ files_directory }}/icons/"
+        dest: "{{ homepage_icons_remote_dir }}/"
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
         mode: "0775"
       notify: Restart
 
