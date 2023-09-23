@@ -4,16 +4,17 @@
 
   vars:
     application: crowdsec
+
     docker_network: 
 
-    crowdsec_bouncer_key: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      63366636663431323432313066373338386534356331363662346339383965343138636336633730
-      6231613236393334656639343338343066643232366130640a623035323638613539633837336137
-      33396461616132393361306636313135646263663238643738666635306365336638623332663437
-      6566356339373137640a613364656633656261663839373062333835333233376663323062363962
-      61373530323064366537666533313937363538393034626333363362393039303936633931646630
-      6438376238626232343034663131653966616463343363346462
+    crowdsec_bouncer_key:
+      traefik: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        61616630346330653065643734333738336634663434346262353133373230393664623835656463
+        3938636663393664343539636266363961373765646538390a653936636634643036363266363162
+        32363633353962356238626461386265306434653239663762376639353834663239323936666662
+        3537613633356330310a303432306636393139306636356639316436333333373937663832343131
+        63366334616461633862313537626331343964336239363534323931366632363437
 
     DISCORD_WEBHOOK: !vault |
       $ANSIBLE_VAULT;1.1;AES256
@@ -53,7 +54,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0775"
+        mode: "0771"
 
     - name: Create config.yaml.local
       ansible.builtin.copy:
@@ -92,6 +93,51 @@
           labels:
             type: syslog
         dest: "{{ config_directory }}/acquis.yaml"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart
+
+
+    - name: Create email.yaml
+      ansible.builtin.copy:
+        content: |
+          type: email
+          name: email
+
+          log_level: info
+
+          {% raw %}
+          format: |
+            {{ range . -}}
+            {{ $alert := . -}}
+
+            {{ range .Decisions -}}
+            <p><a href=https://www.shodan.io/host/{{ .Value}}>{{ .Value}}</a> will get <b>{{ .Type}}</b> for next <b>{{ .Duration}}</b> for triggering <b>{{ .Scenario}}</b>.</p>
+            {{ end -}}
+
+            <ul>
+            {{ range .Events -}}
+            {{ range .Meta }}{{ if eq .Key "traefik_router_name"}}<li>{{ .Value}}: {{ end }}{{ end }}{{ range .Meta }}{{ if eq .Key "http_path" }}{{ .Value }}{{ end }}{{ end }}</li>
+            {{ end -}}
+            </ul>
+
+            {{ end -}}
+          {% endraw %}
+
+          smtp_host: {{ common_email_host }}
+          smtp_username: {{ common_smtp_username }}
+          smtp_password: {{ common_smtp_password }}
+          smtp_port: {{ common_email_port }}
+          sender_email: {{ common_email_username }}
+          receiver_emails:
+           - {{ application }}{{ common_email_to }}
+          encryption_type: starttls
+          auth_type: login
+          email_subject: CrowdSec Notification
+
+          timeout: 20s
+        dest: "{{ config_directory }}/email.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -162,6 +208,7 @@
               duration: 8766h
           
           notifications:
+            - email
             - discord
           
           on_success: break
@@ -186,6 +233,7 @@
           - "{{ config_directory }}/config.yaml.local:/etc/crowdsec/config.yaml.local"
           - "{{ config_directory }}/profiles.yaml.local:/etc/crowdsec/profiles.yaml.local"
 
+          - "{{ config_directory }}/email.yaml:/etc/crowdsec/notifications.local/email.yaml"
           - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications.local/discord.yaml"
 
           - "{{ config_directory}}/config:/etc/crowdsec"
@@ -205,6 +253,9 @@
               [
                 "crowdsecurity/traefik",
                 "crowdsecurity/http-cve",
+                "crowdsecurity/iptables",
+                "crowdsecurity/linux-lpe",
+                "crowdsecurity/linux",
                 "LePresidente/authelia",
               ] | join(' ')
             }}
@@ -222,13 +273,14 @@
  
     - name: Create traefik bouncer container
       community.docker.docker_container:
-        name: "bouncer-traefik"
+        name: "{{ application }}-traefik-bouncer"
         image: fbonalair/traefik-crowdsec-bouncer:0.5.0
         state: started
         restart_policy: unless-stopped
         env:
-          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key }}"
-          CROWDSEC_AGENT_HOST: crowdsec:8080
+          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_bouncer_key.traefik }}"
+          CROWDSEC_AGENT_HOST: "{{ application }}:8080"
+          PORT: "8080"
           GIN_MODE: release
         networks:
           - name: "{{ docker_network }}"

@@ -3,8 +3,8 @@
 - hosts: 
 
   vars:
-    application: agent
-
+    application: uptime-kuma
+    docker_network: 
 
   tasks:
     - name: Create config folder
@@ -13,21 +13,20 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0775"
+        mode: "0771"
 
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: portainer/agent:2.19.1
+        image: louislam/uptime-kuma:1.23.1
         pull: true
         state: started
         restart_policy: always
         ports:
-        - "9001:9001"
+        - "3001:3001"
+        networks:
+          - name: "{{ docker_network }}"
         volumes:
-          - /etc/localtime:/etc/localtime:ro
-          - /var/run/docker.sock:/var/run/docker.sock
-
-          - "{{ config_directory }}:/data"
+          - "{{ config_directory }}:/app/data"
         security_opts:
           - no-new-privileges:true

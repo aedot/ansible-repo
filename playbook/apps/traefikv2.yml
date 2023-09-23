@@ -55,7 +55,7 @@
         state: started
         restart_policy: always
         env:
-          CF_API_EMAIL: "{{ cloudflare_email }}"
+          CF_API_EMAIL: "{{ common_smtp_username }}"
           CF_DNS_API_TOKEN: "{{ cloudflare_dns_api }}"
           TZ: "{{ common_timezone }}"
         volumes:
