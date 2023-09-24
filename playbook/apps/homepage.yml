@@ -1,6 +1,6 @@
 ---
 
-- hosts:
+- hosts: 
 
   vars:
     application: homepage
@@ -18,13 +18,11 @@
   tasks:
     - name: Create config folder
       ansible.builtin.file:
-        path: "{{ config_directory }}"
+        path: "{{ config_directory }}/config"
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
-      tags:
-        - config
+        mode: "0775"
 
     - name: Create icons folder
       ansible.builtin.file:
@@ -33,18 +31,6 @@
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
         mode: "0771"
-
-    - name: Synchronize config
-      ansible.builtin.template:
-        src: "{{ item.path }}"
-        dest: "{{ config_directory }}/config/{{ item.path | basename | regex_replace('\\.j2$', '') }}"
-        mode: "0664"
-        owner: "{{ common_user }}"
-        group: "{{ common_group }}"
-      with_fileglob: 
-        - "{{ files_directory }}/config/"
-      tags:
-        - config
 
     - name: Copy icons
       ansible.builtin.copy:
@@ -61,6 +47,8 @@
         image: tecnativa/docker-socket-proxy:0.1.1
         state: started
         restart_policy: unless-stopped
+        published_ports:
+          - "2375:2375"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
         env:
@@ -76,7 +64,7 @@
         state: started
         restart_policy: unless-stopped
         published_ports:
-        - "3000:3000"
+          - "3000:3000"
         networks:
           - name: "{{ docker_network }}"
         volumes:
