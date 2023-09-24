@@ -97,7 +97,7 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0771"
+        mode: "0775"
 
     # - name: Set root email
     #   ansible.builtin.copy:
