@@ -41,6 +41,12 @@
     },
 
     {
+      "description": "Automatically merge dev  dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
+
+    {
       "description": "Automatically creates a PR whenever there is a new major Renovate version",
       "matchUpdateTypes": ["major"],
       "automerge": false,
@@ -55,6 +61,8 @@
 
     ],
 
-  "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
+    "platformAutomerge": true,
+
+    "prBodyTemplate": "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}"
 
 }
