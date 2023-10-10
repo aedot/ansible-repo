@@ -3,17 +3,15 @@
 - hosts: all
 
   vars:
-    DISCORD_WEBHOOK: !vault |
+    SLACK_TOKEN: !vault |
       $ANSIBLE_VAULT;1.1;AES256
-      64663438646236653465323963323739313662613837336561396133336230323162313866623563
-      3737346361393464316130616338333661343264373039630a363335313661666137386262656366
-      62656539363330353636383834646465646630346461663438363532373861666439316133393866
-      6638393166656164370a336331363233653235363761303364396435376164396532366336326530
-      63363239326338643666623161366532393937353563323339646636303662323331643266396637
-      36643338373530346137303636663631383364346630623431623232346262306436373262373066
-      31343232323433363464326163373066376433336663346230383135323436663631663565363935
-      37356166653366623433646263653937643137393838386332663666306466376138303639386634
-      3061
+      31643838656235393564653430323732646266643664343631666131613763393936366131623230
+      3132363766323233623863393333613235653335313333380a376531303436616666303836633461
+      39363930303465333033363335373163663439303731616337343636323931353538383236653735
+      3561653436623662340a363434333666353239386138393433623436396633306238333030643239
+      33303161663461313935376166636132336561356231306533646631356638376364326165613866
+      64383132336265316636646662386131626362343237636662343862363238393433666336386337
+      366538306161363364346139396131373861
 
   tasks:
     - name: Make sure everything's up to date
@@ -27,21 +25,24 @@
         get_checksum: false
       register: reboot
       changed_when: reboot.stat.exists
-      notify: discord notifier
+      notify: notify slack if restart require
     - debug:
         var: reboot.stat.exists
 
   handlers:
-
-    - name: discord notifier
-      uri:
-        url: "https://discord.com/api/webhooks/{{ DISCORD_WEBHOOK }}"
-        method: POST
-        body_format: json
-        status_code: 204
-        return_content: no
-        validate_certs: no
-        body:
-          {"content": "System reboot REQUIRED on {{ inventory_hostname }}"}
-        headers:
-          content-Type: application/json
+  - name: notify slack if restart require
+    tags: slack
+    community.general.slack:
+      token: "{{ SLACK_TOKEN }}"
+      msg: |
+          ### StatusUpdate ###
+          – ------------------------------------
+          ``
+          `Server`: {{ inventory_hostname }}
+          `Status`: reboot REQUIRED
+          – ------------------------------------
+      channel: '#notifications'
+      color: good
+      username: 'Ansible on {{ inventory_hostname }}'
+      link_names: 0
+      parse: 'none'
