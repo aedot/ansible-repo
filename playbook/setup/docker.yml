@@ -134,7 +134,7 @@
       ansible.builtin.copy:
         content: |
           {
-            "dns": ["172.16.10.1"],
+            "dns": ["172.16.70.1"],
             "live-restore": true
           }
         dest: "/etc/docker/daemon.json"

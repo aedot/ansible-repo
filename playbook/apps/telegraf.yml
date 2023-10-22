@@ -1,10 +1,10 @@
 ---
 
-- hosts: monitoring
+- hosts: 
 
   vars:
     application: telegraf
-    docker_network: monitor
+    docker_network: 
 
   handlers:
     - name: Restart
@@ -42,6 +42,6 @@
         volumes:
           - "{{ config_directory }}/telegraf.conf:/etc/telegraf/telegraf.conf"
         published_ports:
-          - "8125:8125"
+          - "8225:8125"
         networks:
               - name: "{{ docker_network }}"
