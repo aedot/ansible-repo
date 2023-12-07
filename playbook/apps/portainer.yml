@@ -19,7 +19,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: portainer/portainer-ce:2.19.1
+        image: portainer/portainer-ce:2.19.4
         state: started
         restart_policy: unless-stopped
         volumes:
