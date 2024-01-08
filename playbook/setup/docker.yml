@@ -95,7 +95,7 @@
 
     - name: Install docker-compose
       ansible.builtin.get_url:
-        url: "https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        url: "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
         dest: /usr/local/bin/docker-compose
         mode: "0755"
 
@@ -134,7 +134,7 @@
       ansible.builtin.copy:
         content: |
           {
-            "dns": ["172.16.70.1"],
+            "dns": ["1.1.1.1"],
             "live-restore": true
           }
         dest: "/etc/docker/daemon.json"

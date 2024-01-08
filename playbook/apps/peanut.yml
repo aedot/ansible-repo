@@ -3,8 +3,8 @@
 - hosts: 
 
   vars:
-    application: agent
-
+    application: peanut
+    docker_network: 
 
   tasks:
     - name: Create config folder
@@ -18,16 +18,17 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: portainer/agent:latest
+        image: brandawg93/peanut:latest
         pull: true
         state: started
         restart_policy: always
         ports:
-        - "9001:9001"
-        volumes:
-          - /etc/localtime:/etc/localtime:ro
-          - /var/run/docker.sock:/var/run/docker.sock
-
-          - "{{ config_directory }}:/data"
+          - "8585:8080"
+        env:
+          NUT_HOST: ""
+          NUT_PORT: "3493"
+          WEB_PORT: "8080"
+        networks:
+          - name: "{{ docker_network }}"
         security_opts:
-          - no-new-privileges:true
+          no-new-privileges:true
