@@ -29,6 +29,18 @@
       36303236333466643435316330356332333430343838656636626666396430663066303737646530
       6239353731656165646635346139653937343666663166623539
 
+    SLACK_WEBHOOK: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      35326630306461616261666463633063653065303034393230393730316662323663396633336664
+      3262303339353131333431336632303533303533353734300a613764613265336266303930613431
+      62643734653236643938623231383933316335666464303933653764643334633532383333303165
+      3234633432613033310a633534313139343438646565306239346266366262306534376166383466
+      31333165303936626437373062643662633266633964653064393437373335376564356533613762
+      65636535316537306666653564316561346437353838363237613738363634666332613437626536
+      64366534663261323437316336333231663431353565326532323536386564353864303934613935
+      62656237396334346239353935396164353139656536326435343432323161393735323161666130
+      6538
+
     MAPQUEST_API_KEY: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       36653666323536663362393965356131393839393063356137643461633138353835613731373561
@@ -143,51 +155,80 @@
         mode: "0644"
       notify: Restart
 
-    - name: Create discord.yaml
+    # - name: Create discord.yaml
+    #   ansible.builtin.copy:
+    #     content: |
+    #       type: http
+    #       name: discord
+    #       log_level: info
+
+    #       {% raw %}
+    #       format: |
+    #         {
+    #           "content": null,
+    #           "embeds": [
+    #             {{range . -}}
+    #             {{$alert := . -}}
+    #             {{range .Decisions -}}
+    #             {{if $alert.Source.Cn -}}
+    #             {
+    #               "title": "{{$alert.MachineID}}: {{.Scenario}}",
+    #               "description": ":flag_{{ $alert.Source.Cn | lower }}: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
+    #               "url": "https://db-ip.com/{{$alert.Source.IP}}",
+    #               "color": "16711680",
+    #               "image": {
+    #                 "url": "https://www.mapquestapi.com/staticmap/v5/map?center={{$alert.Source.Latitude}},{{$alert.Source.Longitude}}&size=500,300&key={{ MAPQUEST_API_KEY }}"
+    #               }
+    #             }
+    #             {{end}}
+    #             {{if not $alert.Source.Cn -}}
+    #             {
+    #               "title": "{{$alert.MachineID}}: {{.Scenario}}",
+    #               "description": ":pirate_flag: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
+    #               "url": "https://db-ip.com/{{$alert.Source.IP}}",
+    #               "color": "16711680"
+    #             }
+    #             {{end}}
+    #             {{end -}}
+    #             {{end -}}
+    #           ]
+    #         }
+    #       {% endraw %}
+
+    #       url: "{{ DISCORD_WEBHOOK }}"
+    #       method: POST
+    #       headers:
+    #         Content-Type: application/json
+    #     dest: "{{ config_directory }}/discord.yaml"
+    #     owner: "{{ common_root_id }}"
+    #     group: "{{ common_root_group }}"
+    #     mode: "0644"
+    #   notify: Restart
+
+    - name: Create slack.yaml
       ansible.builtin.copy:
         content: |
-          type: http
-          name: discord
+          type: slack
+          name: slack
           log_level: info
 
           {% raw %}
           format: |
-            {
-              "content": null,
-              "embeds": [
-                {{range . -}}
-                {{$alert := . -}}
-                {{range .Decisions -}}
-                {{if $alert.Source.Cn -}}
-                {
-                  "title": "{{$alert.MachineID}}: {{.Scenario}}",
-                  "description": ":flag_{{ $alert.Source.Cn | lower }}: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
-                  "url": "https://db-ip.com/{{$alert.Source.IP}}",
-                  "color": "16711680",
-                  "image": {
-                    "url": "https://www.mapquestapi.com/staticmap/v5/map?center={{$alert.Source.Latitude}},{{$alert.Source.Longitude}}&size=500,300&key={{ MAPQUEST_API_KEY }}"
-                  }
-                }
-                {{end}}
-                {{if not $alert.Source.Cn -}}
-                {
-                  "title": "{{$alert.MachineID}}: {{.Scenario}}",
-                  "description": ":pirate_flag: {{$alert.Source.IP}} will get a {{.Type}} for the next {{.Duration}}. <https://www.shodan.io/host/{{$alert.Source.IP}}>",
-                  "url": "https://db-ip.com/{{$alert.Source.IP}}",
-                  "color": "16711680"
-                }
-                {{end}}
-                {{end -}}
-                {{end -}}
-              ]
-            }
+            {{range . -}}
+            {{$alert := . -}}
+            {{range .Decisions -}}
+            {{if $alert.Source.Cn -}}
+            :flag-{{$alert.Source.Cn}}: <https://www.whois.com/whois/{{.Value}}|{{.Value}}> will get {{.Type}} for next {{.Duration}} for triggering {{.Scenario}} on machine '{{$alert.MachineID}}'. <https://www.shodan.io/host/{{.Value}}|Shodan>{{end}}
+            {{if not $alert.Source.Cn -}}
+            :pirate_flag: <https://www.whois.com/whois/{{.Value}}|{{.Value}}> will get {{.Type}} for next {{.Duration}} for triggering {{.Scenario}} on machine '{{$alert.MachineID}}'.  <https://www.shodan.io/host/{{.Value}}|Shodan>{{end}}
+            {{end -}}
+            {{end -}}
+
           {% endraw %}
 
-          url: "{{ DISCORD_WEBHOOK }}"
-          method: POST
-          headers:
-            Content-Type: application/json
-        dest: "{{ config_directory }}/discord.yaml"
+          webhook: "{{ SLACK_WEBHOOK }}"
+  
+        dest: "{{ config_directory }}/slack.yaml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0644"
@@ -209,7 +250,7 @@
           
           notifications:
             - email
-            - discord
+            - slack
           
           on_success: break
           on_failure: break
@@ -235,6 +276,7 @@
 
           - "{{ config_directory }}/email.yaml:/etc/crowdsec/notifications.local/email.yaml"
           - "{{ config_directory }}/discord.yaml:/etc/crowdsec/notifications.local/discord.yaml"
+          - "{{ config_directory }}/slack.yaml:/etc/crowdsec/notifications.local/slack.yaml"
 
           - "{{ config_directory}}/config:/etc/crowdsec"
           - "{{ config_directory }}/data:/var/lib/crowdsec/data"
