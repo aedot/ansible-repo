@@ -1,0 +1,83 @@
+---
+
+- hosts: 
+
+  vars:
+    application: fireflyiii
+    docker_network: 
+
+    firefly_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      62666663373362643561396361373166366366373162613834333964626431356162656362313362
+      3235656537616430356562653663323664333866636366640a313261656238393730643131383738
+      35366133656266366638336134383863663662633361616134343431363534393462636538333131
+      3935666236343938390a316135653631613965373437343664336332633663376661643933316339
+      3665    
+
+
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create {{ application }} folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}/upload"
+        state: directory
+        owner: "root"
+        group: "root"
+        mode: "0775"
+
+    - name: Template config
+      ansible.builtin.template:
+        src: "{{ files_directory }}/{{ item }}.j2"
+        dest: "{{ config_directory }}/{{ item }}"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0444"
+      loop:
+        # - .env
+        - .importer.env
+      notify: Restart
+
+    - name: Create {{ application }} container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: fireflyiii/core:latest
+        state: started
+        restart_policy: always
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+          
+        published_ports:
+          - 8181:8080
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ config_directory }}/upload:/var/www/html/storage/upload"
+
+    - name: Create {{ application }}-importer container
+      community.docker.docker_container:
+        name: "{{ application }}-importer"
+        image: fireflyiii/data-importer:latest
+        state: started
+        restart_policy: always
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+          DB_CONNECTION: mysql
+          DB_HOST: 
+          DB_PORT: 3306 | string
+          DB_DATABASE: firefly_db
+          DB_USERNAME: firefly_user
+          DB_PASSWORD: "{{ firefly_password }}"
+        published_ports:
+          - 8181:8080
