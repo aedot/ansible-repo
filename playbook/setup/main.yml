@@ -69,9 +69,9 @@
           - unzip
           - curl
           - wget
-          - qemu-guest-agent
           - ufw
           - dnsutils
+          - xe-guest-utilities
           - jq
           - ripgrep
           - unattended-upgrades
