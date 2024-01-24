@@ -1,0 +1,74 @@
+---
+
+- hosts: 
+
+  vars:
+    application: fireflyiii
+    docker_network: 
+
+    API_KEY: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      36333863633063623436666564643934303563333632363434366433356165656337306137643061
+      3265333531343331373231396261663535666334663535650a323464373865343736393235393862
+      30363535383066346431363966303834373633643639316633653931316133613066353738393537
+      6662653532653562620a666238306366663430356530386165373035623832306462346236346663
+      38323637653831313436613834623363633565643930633334373361333734636366313365323937
+      3333633661643938383630633463393739343339356366306363
+
+    password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      39353538346434633632373065613231643534373761396538323935656536326638303762353930
+      3665326233323634366365393635643635633338326565640a366333346536316463343439326163
+      39623933643437376562316339376433616530616164663362383234633630333833336633323634
+      3565643133376363390a356337623730623161356339313065646235613864666135336531313831
+      33623733363761656634353335373166623736306165383362666434343232663665393665643331
+      6431303135626430626166613861346261376439616363326664
+
+
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create {{ application }} folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "root"
+        group: "root"
+        mode: "0775"
+
+    - name: Create {{ application }} container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: fireflyiii/core:latest
+        state: started
+        restart_policy: always
+        env:
+          UID: "{{ common_root_id | string }}"
+          GID: "{{ common_root_group | string }}"
+          TZ: "{{ common_timezone }}"
+          DB_CONNECTION: mysql
+          DB_HOST: 
+          DB_PORT: 3306 | string
+          DB_DATABASE: firefly_db
+          DB_USERNAME: firefly_user
+          DB_PASSWORD: "{{ password }}"
+          APP_ENV: local
+          APP_DEBUG: "true"
+          APP_KEY: "{{ API_KEY }}"
+          DEFAULT_LANGUAGE: en_US
+          DEFAULT_LOCALE: equal
+          APP_URL: http://localhost
+          
+        published_ports:
+          - 8080:8080
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ config_directory }}/upload:/var/www/html/storage/upload"

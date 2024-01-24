@@ -1,0 +1,61 @@
+---
+
+- hosts: 
+
+  vars:
+    application: privatebin
+
+    docker_network: 
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folders
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        mode: "0700"
+        owner: nobody
+        group: "82"  # nobody in alpine
+
+    - name: Create folders
+      ansible.builtin.file:
+        path: "{{ config_directory }}/{{ item }}"
+        state: directory
+        mode: "0700"
+        owner: nobody
+        group: "82"  # nobody in alpine
+      loop:
+        - cfg
+        - data
+
+    - name: Template config
+      ansible.builtin.template:
+        src: "{{ files_directory }}/conf.php.j2"
+        dest: "{{ config_directory }}/cfg/conf.php"
+        mode: "0644"
+        owner: nobody
+        group: "82"  # nobody in alpine
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: privatebin/nginx-fpm-alpine:latest
+        pull: true
+        state: started
+        restart_policy: always
+        ports:
+        - "8181:8080"
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ config_directory }}/data:/srv/data"
+          - "{{ config_directory }}/cfg:/srv/cfg"
+    

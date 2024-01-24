@@ -41,8 +41,7 @@
         state: started
         restart_policy: unless-stopped
         published_ports:
-          - "3010:3000"
-          - "9010:9000"
+          - "8383:80"
         env:
           PUID: "{{ common_user_id | string }}"
           PGID: "{{ common_group_id | string }}"
