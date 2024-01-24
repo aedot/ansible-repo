@@ -1,4 +1,0 @@
----
-
-homepage_icons_local_dir: playbook/apps/files/homepage/icons
-homepage_icons_remote_dir: "{{ common_directory }}/homepage/icons"

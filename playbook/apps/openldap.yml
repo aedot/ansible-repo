@@ -23,7 +23,7 @@
           '*': ignore
 
   tasks:
-    - name: Create {{ application }} folder
+    - name: Create config folder
       ansible.builtin.file:
         path: "{{ config_directory }}"
         state: directory
@@ -37,15 +37,16 @@
         image: osixia/openldap:1.5.0
         state: started
         restart_policy: always
+        published_ports:
+        - "389:389"
+        - "636:636"
         env:
-          UID: "{{ common_root_id | string }}"
-          GID: "{{ common_root_group | string }}"
-          TZ: "{{ common_timezone }}"
           LDAP_ORGANISATION: "{{ organization }}"
-          LDAP_DOMAIN: "{{ common_tld }}"
+          LDAP_DOMAIN: "{{ common_local_tld }}"
           LDAP_ADMIN_PASSWORD: "{{ ldap_admin_password }}"
-
+          LDAP_DEBUG: "true"
           LDAP_RFC2307BIS_SCHEMA: "true"
+          LDAP_TLS_VERIFY_CLIENT: "never"
         volumes:
           - "{{ config_directory }}/db:/var/lib/ldap"
           - "{{ config_directory }}/config:/etc/ldap/slapd.d"
@@ -61,7 +62,11 @@
         published_ports:
           - "8383:80"
         env:
-          SERVER_HOSTNAME: "lum.{{ common_tld }}"
+          SERVER_HOSTNAME: "lum.{{ common_local_tld }}"
+
+          LDAP_DEBUG: "true"
+          LDAP_IGNORE_CERT_ERRORS: "true"
+          NO_HTTPS: "true"
 
           LDAP_URI: "ldap://{{ ldap_host }}"
           LDAP_BASE_DN: "{{ ldap_base_dn }}"
@@ -69,15 +74,7 @@
           LDAP_ADMIN_BIND_DN: "{{ ldap_admin_dn }}"
           LDAP_ADMIN_BIND_PWD: "{{ ldap_admin_password }}"
           LDAP_ADMINS_GROUP: "admins"
-
-          LDAP_USER_OU: "{{ ldap_user_ou }}"
-          LDAP_GROUP_OU: "{{ ldap_group_ou }}"
-          LDAP_ACCOUNT_ATTRIBUTE: "{{ ldap_account_attribute }}"
-
-          LDAP_IGNORE_CERT_ERRORS: "true"
-          LDAP_REQUIRE_STARTTLS: "false"
-          NO_HTTPS: "true"
-
+          
           SMTP_HOSTNAME: "{{ common_email_host }}"
           SMTP_HOST_PORT: "{{ common_email_port | string }}"
           SMTP_USERNAME: "{{ common_email_username }}"
@@ -85,3 +82,5 @@
           SMTP_USE_TLS: "{{ 'TRUE' if common_email_protocol == 'tls' else 'FALSE' }}"
           EMAIL_FROM_ADDRESS: "lum{{ common_email_to }}"
           EMAIL_FROM_NAME: "ldap-user-manager"
+        networks:
+          - name: "{{ docker_network }}"
