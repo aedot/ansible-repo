@@ -1,0 +1,95 @@
+---
+
+- hosts: 
+
+  vars:
+    application: teslamate
+    docker_network: 
+
+    ENCRYPTION_KEY: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      31376630373965656163376462646531616666666364353465646164646230303932363939623862
+      3262336365393265383332353136653139386233653262370a623539313433386234636136373365
+      32663638306630653336613630623534616162376632353465343238313835353461353161353664
+      6431383234303461640a326464343031666438656466383331646161353564623331623561333735
+      34633937336334656139366466393438383865653732353039373463323532363139353937616263
+      3433643435633930646164616132653863316463353834646134
+
+    postgres_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      65343537316361613237336437373762333630346639323435623330363835323635663137323962
+      3437326461643237623333386637363764626264653535330a333761623936383861383537303861
+      37313263383035323761393335373738396366343338366131653438666135396662396131646539
+      3261316434633731650a613732303731333538666236333661613137333030353361333937363730
+      33623231333430643535663333353539646430626630366461333861303266393932623961326565
+      6136303932356337613765306162343136623637326537376634
+    
+    postgres_user: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      39396430346234633037636335383739306638633861613439336164303037396563353531656433
+      3232643762383066373337343031346133393961643562390a376332633837323234663432316365
+      33373037633561323866616130353138306435636131303238353364333133366539376139323138
+      6333373039343239630a356631663661653464303165383335383462636132313866666330383136
+      6461
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0775"
+
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ config_directory }}/{{ item }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
+      loop:
+        - "import"
+        - "grafana-data"
+
+    - name: Create {{ application }} container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: ghcr.io/teslamate-org/teslamate:pr-3630 # demo for new endpoint api change from tesla
+        pull: true
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "4000:4000"
+        env:
+          ENCRYPTION_KEY: "{{ ENCRYPTION_KEY }}"
+          DATABASE_USER: "{{ postgres_user }}"
+          DATABASE_PASS: "{{ postgres_password }}"
+          DATABASE_NAME: "{{ application }}"
+          DATABASE_HOST: 
+          MQTT_HOST: 
+
+        volumes:
+          - "{{ config_directory }}/import:/opt/app/import"
+        networks:
+          - name: "{{ docker_network }}"
+
+    - name: Create {{ application }}-grafana container
+      community.docker.docker_container:
+        name: "{{ application }}-grafana"
+        image: teslamate/grafana:latest
+        pull: true
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "3000:3000"
+        env:
+          DATABASE_USER: "{{ postgres_user }}"
+          DATABASE_PASS: "{{ postgres_password }}"
+          DATABASE_NAME: "{{ application }}"
+          DATABASE_HOST: 
+        volumes:
+          - "{{ config_directory }}/grafana-data:/var/lib/grafana"
+        networks:
+          - name: "{{ docker_network }}"
+

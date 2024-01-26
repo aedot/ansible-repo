@@ -1,0 +1,45 @@
+---
+
+- hosts: 
+
+  vars:
+    application: mosquitto
+    docker_network: 
+
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0775"
+      
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ config_directory }}/{{ item }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
+      loop:
+        - "conf"
+        - "data"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: eclipse-mosquitto:latest
+        pull: true
+        state: started
+        restart_policy: always
+        command: "mosquitto -c /mosquitto-no-auth.conf"
+        ports:
+        - "1883:1883"
+        volumes:
+          - "{{ config_directory }}/conf:/mosquitto/config"
+          - "{{ config_directory }}/data:/mosquitto/data"
+        networks:
+          - name: "{{ docker_network }}"
+
