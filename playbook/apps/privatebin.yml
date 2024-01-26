@@ -20,17 +20,13 @@
       ansible.builtin.file:
         path: "{{ config_directory }}"
         state: directory
-        mode: "0700"
-        owner: nobody
-        group: "82"  # nobody in alpine
+        mode: "0775"
 
     - name: Create folders
       ansible.builtin.file:
         path: "{{ config_directory }}/{{ item }}"
         state: directory
-        mode: "0700"
-        owner: nobody
-        group: "82"  # nobody in alpine
+        mode: "0775"
       loop:
         - cfg
         - data
@@ -40,8 +36,6 @@
         src: "{{ files_directory }}/conf.php.j2"
         dest: "{{ config_directory }}/cfg/conf.php"
         mode: "0644"
-        owner: nobody
-        group: "82"  # nobody in alpine
       notify: Restart
 
     - name: Create container
@@ -57,5 +51,5 @@
           - name: "{{ docker_network }}"
         volumes:
           - "{{ config_directory }}/data:/srv/data"
-          - "{{ config_directory }}/cfg:/srv/cfg"
+          - "{{ config_directory }}/cfg/conf.php:/srv/cfg/conf.php:ro"
     

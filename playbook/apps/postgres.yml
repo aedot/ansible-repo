@@ -23,6 +23,14 @@
       6333373039343239630a356631663661653464303165383335383462636132313866666330383136
       6461
 
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
   tasks:
     - name: Create config folder
       ansible.builtin.file:
@@ -32,21 +40,32 @@
         group: "{{ common_group }}"
         mode: "0775"
 
+    - name: Template config
+      ansible.builtin.template:
+        src: "{{ files_directory }}/{{ item }}.j2"
+        dest: "{{ config_directory }}/{{ item }}"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0444"
+      loop:
+        - init.sql
+      notify: Restart
+
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: postgres:16.0
+        image: postgres:latest
         state: started
         restart_policy: unless-stopped
         published_ports:
           - 5432:5432
         volumes: 
-          - "{{ config_directory }}/db-data/:/var/lib/postgresql/data"
+          - "{{ config_directory }}/data/:/var/lib/postgresql/data"
           - "{{ config_directory }}/init.sql:/docker-entrypoint-initdb.d/init.sql"
         env:
           TZ: "{{ common_timezone }}"
           POSTGRES_USER: "{{ postgres_user }}"
           POSTGRES_PASSWORD: "{{ postgres_password }}"
-          POSTGRES_DB: "{{ application }}"
+          # POSTGRES_DB: "{{ application }}_db"
         networks:
           - name: "{{ docker_network }}"
