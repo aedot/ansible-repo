@@ -52,8 +52,8 @@
           DB_CONNECTION: mysql
           DB_HOST: 
           DB_PORT: 3306 | string
-          DB_DATABASE: speedtester_db
-          DB_USERNAME: speedtester_user
+          DB_DATABASE: speedtester
+          DB_USERNAME: speedtester
           DB_PASSWORD: "{{ speedy_password }}"
         networks:
               - name: "{{ docker_network }}"

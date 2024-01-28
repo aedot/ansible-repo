@@ -5,7 +5,7 @@
   vars:
     application: portainer
 
-    docker_network: 
+    docker_network: tools_proxy
 
   tasks:
     - name: Create config folder
@@ -19,8 +19,9 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: portainer/portainer-ce:2.19.1
+        image: portainer/portainer-ce:latest
         state: started
+        command: -H unix:///var/run/docker.sock
         restart_policy: unless-stopped
         volumes:
           - "{{ config_directory }}:/data"
