@@ -51,7 +51,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: traefik:v2.10.4
+        image: traefik:v2.11.2
         state: started
         restart_policy: always
         env:
