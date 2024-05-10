@@ -18,7 +18,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/wizarrrr/wizarr:3.0.1
+        image: ghcr.io/wizarrrr/wizarr:4.1.0
         state: started
         restart_policy: unless-stopped
         published_ports:
