@@ -24,28 +24,10 @@
         group: "{{ common_group }}"
         mode: "0775"
 
-    - name: Create docker socket proxy container
-      community.docker.docker_container:
-        name: docker-socket-proxy
-        image: tecnativa/docker-socket-proxy:0.1.1
-        state: started
-        restart_policy: unless-stopped
-        published_ports:
-          - "2375:2375"
-        networks:
-          - name: "{{ docker_network }}"
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock:ro
-        env:
-          CONTAINERS: "1" # Allow access to viewing containers
-          SERVICES: "1" # Allow access to viewing services (necessary when using Docker Swarm)
-          TASKS: "1" # Allow access to viewing tasks (necessary when using Docker Swarm)
-          POST: "0" # Disallow any POST operations (effectively read-only)
-
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/gethomepage/homepage:v0.8.4
+        image: ghcr.io/gethomepage/homepage:latest
         state: started
         restart_policy: unless-stopped
         published_ports:

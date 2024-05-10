@@ -6,15 +6,6 @@
     application: redis
     docker_network: 
     
-    redis_password: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      39303561653562336163646334663435646138616537393664366533306365626162623933343366
-      6331666234636165313732313534303930363037666465310a343731663064646336623430313739
-      63613464653364636265343062326466383138323037383330363939386133663939306133633538
-      3865656230343830360a623830313133326563363533383434333038343562343232326438623230
-      37326437323335323063306531326231653062633039376562373136333464393138623762353735
-      6363386335616666363538623032313935303735333666316236
-
   tasks:
     - name: Create config folder
       ansible.builtin.file:
@@ -27,13 +18,13 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: bitnami/redis:7.2.2
+        image: bitnami/redis:7.2.4
         state: started
         restart_policy: unless-stopped
         published_ports:
           - 6379:6379
         env:
-          REDIS_PASSWORD: "{{ redis_password }}"
+          REDIS_PASSWORD: "{{ host.redis_password }}"
         volumes:
           - "{{ config_directory }}:/bitnami/"
         networks:

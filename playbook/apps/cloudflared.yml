@@ -5,14 +5,6 @@
   vars:
     application: cloudflared
     docker_network: 
-    UUID: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      39373834313365323439666165363634636165613535663231393435356539336365613163663630
-      3663616436383965633661353731633239353064383138310a386261323763653630353164663965
-      38353230643266616135356562666662396432393230353032666335663863326137633264323939
-      3332306438646666610a346630333938383338636665383161646336326532623838386165663231
-      64353730396361353338346137353635653735653833633233386134663332666137613936613165
-      6330333532316239343561323036663436633930326434633332
 
   handlers:
     - name: Restart
@@ -23,14 +15,21 @@
           '*': ignore
 
   tasks:
+    # - name: Create config folder
+    #   ansible.builtin.file:
+    #     path: "{{ config_directory }}"
+    #     state: directory
+    #     owner: "{{ common_user }}"
+    #     group: "{{ common_group }}"
+    #     mode: "0777"
 
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: cloudflare/cloudflared:2023.10.0
+        image: cloudflare/cloudflared:latest
         state: started
         restart_policy: always
-        command: "tunnel --config /home/nonroot/.cloudflared/config.yml run {{ UUID }}"
+        command: "tunnel --config /home/nonroot/.cloudflared/config.yml run <UUID>"
         volumes:
           - "{{ config_directory }}:/home/nonroot/.cloudflared/"
         networks:

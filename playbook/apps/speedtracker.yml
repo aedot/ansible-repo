@@ -49,11 +49,11 @@
           UID: "{{ common_root_id | string }}"
           GID: "{{ common_root_group | string }}"
           TZ: "{{ common_timezone }}"
-          DB_CONNECTION: mysql
-          DB_HOST: 
-          DB_PORT: 3306 | string
-          DB_DATABASE: speedtester
-          DB_USERNAME: speedtester
+          DB_CONNECTION: pgsql
+          DB_HOST: "postgres"
+          DB_PORT: "5432"
+          DB_DATABASE: speedy
+          DB_USERNAME: speedy
           DB_PASSWORD: "{{ speedy_password }}"
         networks:
               - name: "{{ docker_network }}"

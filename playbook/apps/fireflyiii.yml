@@ -65,6 +65,14 @@
           DEFAULT_LANGUAGE: en_US
           DEFAULT_LOCALE: equal
           APP_URL: http://localhost
+
+          MAIL_MAILEER: "smtp"
+          MAIL_FROM_ADDRESS: noreply{{ common_email_to }}
+          MAIL_HOST: "{{ common_email_to }}"
+          MAIL_PORT: "{{ common_email_port | string }}"
+          MAIL_USERNAME: "{{ common_smtp_username }}"
+          MAIL_PASSWORD: "{{ common_smtp_password }}"
+          MAIL_ENCRYPTION: "{{ common_email_protocol }}"
           
         published_ports:
           - 8080:8080

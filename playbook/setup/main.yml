@@ -12,7 +12,6 @@
         name: sshd
         state: restarted
 
-
   tasks:
     - name: Disable requiretty to enable Ansible pipelining
       ansible.builtin.lineinfile:
@@ -45,14 +44,6 @@
         - python3-pip
         - python3-setuptools
 
-    # - name: Disable motd files
-    #   ansible.builtin.file:
-    #     path: "{{ item }}"
-    #     mode: "-x"
-    #   loop:
-    #     - /etc/update-motd.d/50-motd-news
-    #     - /etc/update-motd.d/10-help-text
-
     - name: No password sudo
       community.general.sudoers:
         name: "{{ common_user }}"
@@ -70,13 +61,15 @@
           - curl
           - wget
           - ufw
+          - qemu-guest-agent
           - dnsutils
-          - xe-guest-utilities
           - jq
           - ripgrep
           - unattended-upgrades
           - apt-show-versions
           - gnupg
+          - git
+          - htop
           
         state: present
 
@@ -91,21 +84,13 @@
       community.general.timezone:
         name: "{{ common_timezone }}"
 
-    - name: Create common directory
-      ansible.builtin.file:
-        path: "{{ common_directory }}"
-        state: directory
-        owner: "{{ common_user }}"
-        group: "{{ common_group }}"
-        mode: "0775"
-
-    # - name: Set root email
-    #   ansible.builtin.copy:
-    #     dest: "/root/.forward"
-    #     content: "{{ common_startup_email }}"
-    #     owner: "{{ common_root_id }}"
-    #     group: "{{ common_root_group }}"
-    #     mode: "0644"
+    # - name: Create common directory
+    #   ansible.builtin.file:
+    #     path: "{{ common_directory }}"
+    #     state: directory
+    #     owner: "{{ common_user }}"
+    #     group: "{{ common_group }}"
+    #     mode: "0775"
 
     - name: Configure unattended-upgrades
       ansible.builtin.lineinfile:
@@ -140,18 +125,18 @@
         - name: fs.inotify.max_user_instances
           value: 256
 
-    # - name: Make sure SSH is more secure.
-    #   ansible.builtin.lineinfile:
-    #     dest: /etc/ssh/sshd_config
-    #     regexp: "{{ item.regexp }}"
-    #     line: "{{ item.line }}"
-    #     state: present
-    #   with_items: 
-    #     - regexp: "^PasswordAuthentication"
-    #       line: "PasswordAuthentication no"
-    #     - regexp: "^PermitRootLogin"
-    #       line: "PermitRootLogin no"
-    #   notify: restart ssh
+    - name: Make sure SSH is more secure.
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items: 
+        - regexp: "^PasswordAuthentication"
+          line: "PasswordAuthentication no"
+        - regexp: "^PermitRootLogin"
+          line: "PermitRootLogin no"
+      notify: restart ssh
 
     # - name: Install firewalld
     #   package:
@@ -164,29 +149,3 @@
     #     state: started
     #     enabled: yes
 
-    - name: Install fail2ban (Debian).
-      apt:
-        name: fail2ban
-        state: present
-      when: ansible_os_family == 'Debian'
-
-    - name: Ensure fail2ban is running and enabled on boot.
-      service:
-        name: fail2ban
-        state: started
-        enabled: yes
-
-    # - name: Configure ports in firewall
-    #   firewalld:
-    #     state: "{{ item.state }}"
-    #     port: "{{ item.port }}"
-    #     zone: external
-    #     immediate: yes
-    #     permanent: yes
-    #   with_items:
-    #     - { state: 'enabled', port: 2849/tcp }
-    #     - { state: 'enabled', port: 123/udp }
-    #     - { state: 'enabled', port: 22/udp }
-    #     - { state: 'enabled', port: 22/tcp }
-    #     - { state: 'enabled', port: 10050/udp }
-    #     - { state: 'enabled', port: 10050/tcp }

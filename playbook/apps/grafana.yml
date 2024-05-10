@@ -57,14 +57,13 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: grafana/grafana:10.2.0
+        image: grafana/grafana:10.2.6
         state: started
         restart_policy: unless-stopped
         published_ports:
-          - "3111:3000"
+          - "3000:3000"
         volumes:
           - "{{ config_directory }}/data:/var/lib/grafana"
           - "{{ config_directory }}/provisioning:/etc/grafana/provisioning"
         networks:
           - name: "{{ docker_network }}"
-

@@ -3,8 +3,8 @@
 - hosts: 
 
   vars:
-    application: actual-budget
-
+    application: actualbudget
+    
     docker_network: 
 
   tasks:
@@ -13,17 +13,18 @@
         path: "{{ config_directory }}"
         state: directory
         owner: "{{ common_user }}"
-        group: "{{ common_root_group }}"
+        group: "{{ common_group }}"
         mode: "0771"
 
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: actualbudget/actual-server:23.9.0@sha256:19ef6ce46b2fe9ce61178648e9e13831b29040fd6a4c80130fb3f7c2bd9dfc5a
+        image: actualbudget/actual-server:24.4.0
+        pull: true
         state: started
-        restart_policy: unless-stopped
+        restart_policy: always
         published_ports:
-          - "5006:5006"
+          - 5006:5006
         volumes:
           - "{{ config_directory }}:/data"
         networks:
@@ -35,4 +36,7 @@
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
             "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.average": "100|string",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.burst": "100|string",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.sourcecriterion.ipstrategy.excludedips": "127.0.0.1/32, 172.16.0.0/24",
           }'

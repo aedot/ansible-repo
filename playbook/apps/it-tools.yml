@@ -4,6 +4,7 @@
 
   vars:
     application: it-tools
+    docker_network: 
 
   tasks:
     - name: Create config folder
@@ -25,5 +26,7 @@
         - "1180:80"
         volumes:
           - "{{ config_directory }}:/data"
+        networks:
+          - name: "{{ docker_network }}"
         security_opts:
           - no-new-privileges:true

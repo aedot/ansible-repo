@@ -4,14 +4,13 @@
 
   vars:
     application: docker-socket-proxy
-
     docker_network: 
 
   tasks:
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: tecnativa/docker-socket-proxy:0.1.1
+        image: tecnativa/docker-socket-proxy:latest
         state: started
         restart_policy: unless-stopped
         published_ports:

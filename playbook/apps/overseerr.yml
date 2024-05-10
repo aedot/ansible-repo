@@ -23,9 +23,9 @@
         restart_policy: unless-stopped        
         env:
           TZ: "{{ common_timezone }}"
+          LOG_LEVEL: debug
         volumes:
           - "{{ config_directory }}:/app/config"
-        user: "{{ common_user_id }}:{{ common_group_id }}"
         published_ports:
           - "5055:5055"
         networks:
@@ -35,5 +35,5 @@
             "traefik.enable": "true",
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
-            "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+            "traefik.http.routers.{{ application }}.middlewares": "crowdsec@file",
           }'

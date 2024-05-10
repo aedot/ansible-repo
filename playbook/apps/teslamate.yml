@@ -47,7 +47,7 @@
     - name: Create {{ application }} container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/teslamate-org/teslamate:pr-3630 # demo for new endpoint api change from tesla
+        image: teslamate/teslamate:latest
         pull: true
         state: started
         restart_policy: unless-stopped
@@ -55,11 +55,11 @@
           - "4000:4000"
         env:
           ENCRYPTION_KEY: "{{ ENCRYPTION_KEY }}"
-          DATABASE_USER: "{{ application }}"
+          DATABASE_USER: teslamate
           DATABASE_PASS: "{{ postgres_password }}"
-          DATABASE_NAME: "{{ application }}"
-          DATABASE_HOST: 
-          MQTT_HOST: 
+          DATABASE_NAME: teslamate
+          DATABASE_HOST: "postgres"
+          MQTT_HOST: "mosquitto"
 
         volumes:
           - "{{ config_directory }}/import:/opt/app/import"
@@ -76,10 +76,10 @@
         ports:
           - "3000:3000"
         env:
-          DATABASE_USER: "{{ application }}"
+          DATABASE_USER: teslamate
           DATABASE_PASS: "{{ postgres_password }}"
-          DATABASE_NAME: "{{ application }}"
-          DATABASE_HOST: 
+          DATABASE_NAME: teslamate
+          DATABASE_HOST: "postgres"
         volumes:
           - "{{ config_directory }}/grafana-data:/var/lib/grafana"
         networks:

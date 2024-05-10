@@ -4,6 +4,7 @@
 
   vars:
     application: authelia
+    
     docker_network: 
 
     jwt_secret: !vault |
@@ -31,31 +32,14 @@
       3133663536366134630a633435353832666265383836333262666537366362333161303835323365
       64336664333435343830636337346539376362363136613461313961636163363632
 
-    redis_password: !vault |
+    db_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256
-      39303561653562336163646334663435646138616537393664366533306365626162623933343366
-      6331666234636165313732313534303930363037666465310a343731663064646336623430313739
-      63613464653364636265343062326466383138323037383330363939386133663939306133633538
-      3865656230343830360a623830313133326563363533383434333038343562343232326438623230
-      37326437323335323063306531326231653062633039376562373136333464393138623762353735
-      6363386335616666363538623032313935303735333666316236
-
-    mysql_password: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      35663439633832313336623439646534623837643635396366636331653233626362626431333933
-      3034386662373534306339646165613863316665353832650a313366376661653165396639663830
-      30616634386438353635303835656632303734376431373164363937636464666662303039363834
-      6466666662356234300a303238666463396663623733343031623563633664333138346438353961
-      37663034626336376636383765386531303261656434343164353939633261333764626463353862
-      3538363663633465653632303062373331363235663638383266
-
-    ldap_authelia_password: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      64336435653431356637383862643736653934323265336439366336336361303465623837363339
-      6633363430343866386138356365303736396631393033320a646632383433653536303334306438
-      31333733306464333534323933396531376435616330346435306433386662383135353938396161
-      6564306330316633360a366135323862386130643437333030656237373437313565366165306331
-      66613130643162656331306336653934313966386665336532613330613839656435
+      33633163646338383831383565633138376635646138373034366634616661303464346666653834
+      3537333064393362346636643263666630316662343265350a626232356238343734366137643766
+      36616134646639623535613031653161396663336634363835613964653438613063643164363733
+      3238383238343065650a366632323863626338663865616564376362313037666561396133343033
+      33353238363933393364626434303765663436643537353061613431643062363732646133333463
+      3264346630366262353534346263323738356130613835613632
 
   handlers:
     - name: Restart
@@ -66,30 +50,52 @@
           '*': ignore
 
   tasks:
-    - name: Create authelia folder
+    - name: Create config folder
       ansible.builtin.file:
-        path: "{{ config_directory }}/config"
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create keys folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}/keys"
         state: directory
         owner: "root"
         group: "root"
-        mode: "0775"
+        mode: "0771"
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ config_directory }}/keys/private.pem"
+        type: RSA
+        size: 4096
+        return_content: true
+      register: _authelia_private_key
+
+    - name: Create authelia folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}/authelia"
+        state: directory
+        owner: "root"
+        group: "root"
+        mode: "0771"
 
     - name: Template config
       ansible.builtin.template:
-        src: "{{ files_directory }}/{{ item }}.j2"
-        dest: "{{ config_directory }}/config/{{ item }}"
+        src: "{{ files_directory }}/configuration.yml.j2"
+        dest: "{{ config_directory }}/authelia/configuration.yml"
         owner: "{{ common_root_id }}"
         group: "{{ common_root_group }}"
         mode: "0444"
-      loop:
-        - configuration.yml
-        # - users_database.yml
+        validate: "docker run --rm --name {{ application }}_config_check -v %s:/tmp/config.yml --entrypoint authelia ghcr.io/authelia/authelia:latest validate-config --config /tmp/config.yml"
       notify: Restart
 
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/authelia/authelia:latest
+        image: ghcr.io/authelia/authelia:4.37.5
         state: started
         restart_policy: unless-stopped
         env:
@@ -99,17 +105,16 @@
         networks:
           - name: "{{ docker_network }}"
         volumes:
-          - "{{ config_directory }}/config:/config"
+          - "{{ config_directory }}/authelia:/config"
           - "{{ config_directory }}/logs:/var/log/authelia"
-
-          - /var/log/crowdsec:/var/log/crowdsec
         labels:
           '{
             "traefik.enable": "true",
-            "traefik.http.routers.{{ application }}.rule": "Host(`auth.`)",
+            "traefik.http.routers.{{ application }}.rule": "Host(`auth.{{ common_tld }}`)",
             "traefik.http.routers.{{ application }}.entrypoints": "https",
+
             "traefik.http.routers.{{ application }}.tls": "true",
-            "traefik.http.middlewares.{{ application }}.forwardauth.address": "http://authelia:9091/api/verify?rd=https://auth.",
+            "traefik.http.middlewares.{{ application }}.forwardauth.address": "http://authelia:9091/api/verify?rd=https://auth.{{ common_tld }}",
             "traefik.http.middlewares.{{ application }}.forwardauth.trustForwardHeader": "true",
             "traefik.http.middlewares.{{ application }}.forwardauth.authResponseHeaders": "Remote-User, Remote-Groups, Remote-Name, Remote-Email",
           }'

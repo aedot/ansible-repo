@@ -5,8 +5,6 @@
   vars:
     application: portainer
 
-    docker_network: tools_proxy
-
   tasks:
     - name: Create config folder
       ansible.builtin.file:
@@ -27,7 +25,7 @@
           - "{{ config_directory }}:/data"
           - /var/run/docker.sock:/var/run/docker.sock
         published_ports:
-        - "9000:9000"
+        - "9443:9443"
 
 
 

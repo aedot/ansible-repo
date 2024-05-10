@@ -4,26 +4,15 @@
 
   vars:
     application: mealie
-
-    admin_password: !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      30623839376634333837303965326364333035656137356637626631623237626530376266303432
-      6236326630323034646161393530323136636161396461650a613966313137663233656536376338
-      37663666336637386438306639323664353034376334633261376431663064393363343234636132
-      3138623062396161330a396634363436346139356139663836343536346336626436303834356566
-      35323232316265303566326566303235386233383132326230656330333933376133393038616264
-      6161316665653136626630386132646338623139313037643839
-
+    docker_network: 
     postgres_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256
-      62633137396164626236313733393163646465356231353865383866303837333231313931346366
-      3161356263653335363535623963376661333435346133300a313030363364326539333033346631
-      30386665663437326634313531396137616538393336366134366362343266376161346164353932
-      6666363865303530360a613532623931353736373730376133393631343633353836343233643638
-      63626137346136653262336262376138343034336436353763353263313865643061663335303566
-      6639393835373836643538396561396438633863613230663366
-
-    docker_network: 
+      34376434633335666136626365323131313062633265366264383339646339323964376330623366
+      6438636165623035363364643636353931336532613463320a393835653465376434313563373764
+      61623034353038343161383761626661356538323231653637613965623930373162363730643334
+      6230626239363433320a303334323665313262376438336534643534376462303563343662386335
+      65306331363036393062623638313434613464393136336165356531336631623661373864303363
+      6637303336376164396534653033633761633537353032353733
 
   tasks:
     - name: Create config folder
@@ -37,61 +26,61 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: hkotel/mealie:omni-nightly
+        image: ghcr.io/mealie-recipes/mealie:v1.4.0
         state: started
         restart_policy: unless-stopped
-        published_ports:
-          - "8383:80"
         env:
+          # https://docs.mealie.io/documentation/getting-started/installation/backend-config/
+
+          ## General
           PUID: "{{ common_user_id | string }}"
           PGID: "{{ common_group_id | string }}"
-          TZ: "{{ common_timezone }}"
           BASE_URL: "https://{{ application }}.{{ common_tld }}"
-
+          TZ: "{{ common_timezone }}"
           ALLOW_SIGNUP: "false"
-          RECIPE_PUBLIC: "false"
-          RECIPE_DISABLE_COMMENTS: "true"
+          LOG_LEVEL: DEBUG
 
+          ## Database
+          DB_ENGINE: postgres
+          POSTGRES_USER: "{{ application }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_SERVER: "{{ host.postgres_host }}"
+          POSTGRES_PORT: "{{ host.postgres_port | string }}"
+          POSTGRES_DB: "{{ application }}"
+
+          ## Email
           SMTP_HOST: "{{ common_email_host }}"
           SMTP_PORT: "{{ common_email_port | string }}"
-          SMTP_FROM_NAME: "Mealie"
-          SMTP_AUTH_STRATEGY: "{{ common_email_protocol }}" # Options: 'TLS', 'SSL', 'NONE'
-          SMTP_FROM_EMAIL: "notification{{ common_email_to }}"
+          SMTP_FROM_NAME: "{{ application | title }}"
+          SMTP_AUTH_STRATEGY: "{{ 'tls' if common_email_protocol == 'tls' else 'ssl' }}"
+          SMTP_FROM_EMAIL: "{{ application }}{{ common_email_to }}"
           SMTP_USER: "{{ common_smtp_username }}"
           SMTP_PASSWORD: "{{ common_smtp_password }}"
 
-          DEFAULT_GROUP: "Home"
-          # The Default Credentials for the Super User
-          DEFAULT_EMAIL: "aedot{{ common_email_to }}"
-          DEFAULT_PASSWORD: "{{ admin_password }}"
-
-#           # Configuration for authentication via an external LDAP server
-          LDAP_AUTH_ENABLED: "true"
-          LDAP_SERVER_URL: "ldap://{{ ldap_host }}:389"
-          # LDAP_TLS_INSECURE: False
-          # LDAP_TLS_CACERTFILE: 
-          LDAP_ENABLE_STARTTLS: "False"
-          LDAP_BASE_DN: "{{ ldap_base_dn }}"
-          # LDAP_QUERY_BIND=""
-          # LDAP_QUERY_PASSWORD=""
-
-          # Optionally, filter by a particular user group
-          # (&(|({id_attribute}={input})({mail_attribute}={input}))(objectClass=person)(memberOf=cn=mealie_user,ou=groups,dc=example,dc=com))
-          LDAP_USER_FILTER: "(&({username_attribute}={input})(objectClass=person))"
-
-          # LDAP_ADMIN_FILTER=""
-          LDAP_ID_ATTRIBUTE: "uid"
-          LDAP_NAME_ATTRIBUTE: "givenName"
-          LDAP_MAIL_ATTRIBUTE: "mail"
-
+          ## OpenID Connect (OIDC)
+          OIDC_AUTH_ENABLED: "true"
+          OIDC_CONFIGURATION_URL: "https://auth.{{ common_tld }}/.well-known/openid-configuration"
+          OIDC_CLIENT_ID: "{{ application }}"
+          OIDC_AUTO_REDIRECT: "true"
+          OIDC_PROVIDER_NAME: "Authelia"
+          OIDC_SIGNUP_ENABLED: "true"
+          OIDC_USER_CLAIM: "email"
+          OIDC_USER_GROUP: users
+          OIDC_ADMIN_GROUP: admins
         volumes:
           - "{{ config_directory }}/data:/app/data"
+        published_ports:
+          - "9000:9000"
         networks:
           - name: "{{ docker_network }}"
         labels:
           '{
             "traefik.enable": "true",
+            "traefik.http.routers.{{ application }}.rule": "Host(`mealie.{{ common_tld }}`)",
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
             "traefik.http.routers.{{ application }}.middlewares": "auth@file",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.average": "100|string",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.burst": "100|string",
+            "traefik.http.middlewares.test-ratelimit.ratelimit.sourcecriterion.ipstrategy.excludedips": "127.0.0.1/32, 172.16.0.0/24",
           }'
