@@ -19,7 +19,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: jlesage/jdownloader-2:v23.06.1
+        image: jlesage/jdownloader-2:v24.01.1
         state: started
         restart_policy: unless-stopped
         env:
