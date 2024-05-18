@@ -95,7 +95,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/authelia/authelia:4.37.5
+        image: ghcr.io/authelia/authelia:4.38.8
         state: started
         restart_policy: unless-stopped
         env:
