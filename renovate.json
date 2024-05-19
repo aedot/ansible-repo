@@ -17,7 +17,7 @@
 
   "timezone": "America/Los_Angeles",
   "schedule": [
-    "after 10pm every friday"
+    "after 10pm, before 5:00am"
   ],
 
   "rangeStrategy": "pin",
@@ -34,23 +34,16 @@
 
   "packageRules": [
     {
-      "description": "Automatically merges non-major updates",
-      "matchUpdateTypes": ["minor", "patch", "digest","pin"],
+      "description": "Automatically merges updates",
+      "matchUpdateTypes": ["major", "minor", "patch", "digest","pin"],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
     },
 
     {
-      "description": "Automatically merge dev  dependencies",
+      "description": "Automatically merge dev dependencies",
       "matchDepTypes": ["devDependencies"],
       "automerge": true
-    },
-
-    {
-      "description": "Automatically creates a PR whenever there is a new major Renovate version",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "prCreation": "immediate"
     },
 
     {
