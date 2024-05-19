@@ -1,0 +1,32 @@
+---
+
+- hosts: 
+
+  vars:
+    application: cadvisor
+    
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: gcr.io/cadvisor/cadvisor:latest
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - 8383:8080
+        volumes:
+          - /:/rootfs:ro
+          - /var/run:/var/run
+          - /sys:/sys:ro
+          - /var/lib/docker/:/var/lib/docker:ro
+          - /dev/disk/:/dev/disk:ro
+        security_opts:
+          - no-new-privileges:true

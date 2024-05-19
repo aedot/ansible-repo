@@ -1,0 +1,28 @@
+---
+
+- hosts: 
+
+  vars:
+    application: node-exporter
+    
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: prom/node-exporter:latest
+        state: started
+        restart_policy: unless-stopped
+        command:
+          - '--path.rootfs=/host'
+        published_ports:
+          - 9100:9100
+        volumes:
+          - /:/host:ro
