@@ -18,7 +18,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: bitnami/redis:7.2.4
+        image: bitnami/redis:7.2.5
         state: started
         restart_policy: unless-stopped
         published_ports:
