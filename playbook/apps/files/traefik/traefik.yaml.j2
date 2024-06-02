@@ -56,6 +56,7 @@ entryPoints:
               - '*.{{ common_tld }}'
       middlewares:
         - securityHeaders@file
+        - crowdsec-bouncer@file
 
 providers:
   providersThrottleDuration: 2s
