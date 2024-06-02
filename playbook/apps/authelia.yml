@@ -122,15 +122,11 @@
           - name: "{{ docker_network }}"
         volumes:
           - "{{ config_directory }}:/config"
-          - "{{ config_directory }}/logs:/var/log/authelia"
+          - "{{ config_directory }}/log:/var/log"
         labels:
           '{
             "traefik.enable": "true",
             "traefik.http.routers.{{ application }}.rule": "Host(`auth.{{ common_tld }}`)",
             "traefik.http.routers.{{ application }}.entrypoints": "https",
-
-            "traefik.http.routers.{{ application }}.tls": "true",
-            "traefik.http.middlewares.{{ application }}.forwardauth.address": "http://authelia:9091/api/verify?rd=https://auth.{{ common_tld }}",
-            "traefik.http.middlewares.{{ application }}.forwardauth.trustForwardHeader": "true",
-            "traefik.http.middlewares.{{ application }}.forwardauth.authResponseHeaders": "Remote-User, Remote-Groups, Remote-Name, Remote-Email",
+            "traefik.http.routers.{{ application }}.middlewares": "auth@file",
           }'

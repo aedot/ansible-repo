@@ -3,45 +3,29 @@
 ###############################################################
 theme: dark
 
-default_2fa_method:
-  totp
-
-server:
-  address: "tcp://0.0.0.0:9091/"
-  asset_path: /etc/authelia/assets/
-  disable_healthcheck: false
-
-log:
-  level: debug
-  file_path: /var/log/authelia.log
-
-totp:
-  disable: false
-  issuer: '{{ common_tld }}'
-  algorithm: SHA1
-  digits: 6
-  period: 30
-  skew: 1
-  secret_size: 32
-
-webauthn:
-  disable: false
-  display_name: Authelia
-  attestation_conveyance_preference: indirect
-  user_verification: preferred
-  timeout: 60s
-
 identity_validation:
   reset_password:
     jwt_secret: "{{ authelia_jwt_secret }}"
-    jwt_lifespan: '5 minutes'
-    jwt_algorithm: HS256
 
-ntp:
-  address: "time.cloudflare.com:123"
-  version: 4
-  max_desync: 3s
-  disable_startup_check: false
+server:
+  address: 'tcp://0.0.0.0:9091/'
+  buffers:
+    read: 4096
+    write: 4096
+  endpoints:
+    enable_pprof: false
+    enable_expvars: false
+  disable_healthcheck: false
+
+
+log:
+  level: info
+  file_path: /var/log/authelia.log
+
+totp:
+  issuer: '{{ common_tld }}'
+  period: 30
+  skew: 1
 
 authentication_backend:
   password_reset:
@@ -81,48 +65,51 @@ authentication_backend:
       group_name: cn
 
 access_control:
-  default_policy: "deny"
+  default_policy: deny
   rules:
-    # Rules applied to everyone
-    - domain: "overseerr.{{ common_tld }}"
+    # bypass rule
+    - domain:
+        - "auth.{{ common_tld }}"
+        - "overseerr.{{ common_tld }}"
       policy: "bypass"
-    # one factor
-    - domain: "*.{{ common_tld }}"
+    # catch-all
+    - domain:
+        - "*.{{ common_tld }}"
       subject:
-        - "group:humans"
       policy: one_factor
 
 session:
   name: authelia_session
-  secret: '{{ authelia_session_secret }}'
   same_site: lax
+  secret: '{{ authelia_session_secret }}'
   inactivity: 5m
   expiration: 1h
   remember_me: 1M
   cookies:
-    - domain: '{{ common_tld }}'
-      authelia_url: 'https://auth.{{ common_tld }}'
-      default_redirection_url: 'https://{{ common_tld }}'
-      name: 'authelia_session'
-      same_site: 'lax'
-      inactivity: '5m'
-      expiration: '1h'
-      remember_me: '1d'
+    - domain: {{ common_tld }}
+      authelia_url: https://auth.{{ common_tld }}
+      default_redirection_url: https://{{ common_tld }}
+
+  redis:
+    host: redis
+    port: 6379
+    password: "{{ host.redis_password }}"
+    database_index: 0
+    maximum_active_connections: 10
+    minimum_idle_connections: 0
 
 regulation:
   max_retries: 3
-  find_time: 2 minutes
-  ban_time: 5 minutes
+  find_time: 2m
+  ban_time: 12h
 
 storage:
   encryption_key: '{{ authelia_storage_encryption_key }}'
   postgres:
     address: 'tcp://{{ host.postgres_host }}:{{ host.postgres_port }}'
     database: '{{ application }}'
-    schema: public
     username: '{{ authelia_postgres_user }}'
     password: '{{ authelia_postgres_password }}'
-    timeout: 5 seconds
 
 notifier:
   disable_startup_check: false
@@ -139,3 +126,4 @@ notifier:
     tls:
       skip_verify: false
       minimum_version: TLS1.2
+...

@@ -51,16 +51,15 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: traefik:v3.0.0
+        image: traefik:v3.0.1
         state: started
         restart_policy: always
         env:
           # CF_API_EMAIL: "{{ common_smtp_username }}"
-          # CF_DNS_API_TOKEN: "{{ cloudflare_dns_api }}"
+          # CF_API_KEY: "{{ cloudflare_dns_api }}"
           TZ: "{{ common_timezone }}"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
-          - /var/log/crowdsec/:/var/log/crowdsec/
 
           - "{{ config_directory }}:/etc/traefik/"
         labels:
@@ -68,10 +67,10 @@
           traefik.http.routers.api.entryPoints: "https" 
           traefik.http.routers.api.service: "api@internal"
           traefik.http.routers.api.rule: "Host(`traefik.{{ common_tld }}`)"
-          traefik.http.routers.api.middlewares: "auth@file"
+
         published_ports:
           - 80:80
           - 443:443
-          - 8282:8080
+          - 8080:8080
         networks:
           - name: "{{ docker_network }}"
