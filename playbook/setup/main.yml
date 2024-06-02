@@ -7,9 +7,14 @@
       ansible.builtin.command: update-grub
       changed_when: true
 
-    - name: restart ssh
+    - name: Restart Fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+
+    - name: Restart ssh
       ansible.builtin.service: 
-        name: sshd
+        name: ssh
         state: restarted
 
   tasks:
@@ -56,21 +61,16 @@
         name:
           - build-essential
           - nano
-          - tree
-          - unzip
           - curl
           - wget
           - ufw
-          - qemu-guest-agent
-          - dnsutils
-          - jq
-          - ripgrep
-          - unattended-upgrades
-          - apt-show-versions
+          - xe-guest-utilities
           - gnupg
+          - gnupg2
           - git
           - htop
-          
+          - fail2ban
+          - sendmail
         state: present
 
     - name: Remove packages
@@ -83,31 +83,6 @@
     - name: Set timezone
       community.general.timezone:
         name: "{{ common_timezone }}"
-
-    # - name: Create common directory
-    #   ansible.builtin.file:
-    #     path: "{{ common_directory }}"
-    #     state: directory
-    #     owner: "{{ common_user }}"
-    #     group: "{{ common_group }}"
-    #     mode: "0775"
-
-    - name: Configure unattended-upgrades
-      ansible.builtin.lineinfile:
-        dest: /etc/apt/apt.conf.d/50unattended-upgrades
-        state: present
-        regex: "^{{ item.key }}"
-        line: "{{ item.key }} {{ item.value }};"
-        validate: "echo %s && unattended-upgrades --dry-run"
-      loop: "{{ items | dict2items }}"
-      vars:
-        items:
-          "Unattended-Upgrade::MinimalSteps": "true"
-          # "Unattended-Upgrade::Mail": ""
-          # "Unattended-Upgrade::MailReport": "always"
-          "Unattended-Upgrade::Remove-Unused-Kernel-Packages": "true"
-          "Unattended-Upgrade::Remove-New-Unused-Dependencies": "true"
-          "Unattended-Upgrade::Remove-Unused-Dependencies": "true"
 
     - name: Set GRUB timeout
       ansible.builtin.lineinfile:
@@ -125,6 +100,19 @@
         - name: fs.inotify.max_user_instances
           value: 256
 
+    - name: Copy fail2ban.conf Configuration File
+      command: cp /etc/fail2ban/fail2ban.conf /etc/fail2ban/fail2ban.local
+      become: yes
+
+    - name: Copy jail.conf Configuration File
+      ansible.builtin.template:
+        src: "jail.local.j2"
+        dest: "/etc/fail2ban/jail.local"
+        owner: "{{ common_root_id }}"
+        group: "{{ common_root_group }}"
+        mode: "0644"
+      notify: Restart Fail2ban
+  
     - name: Make sure SSH is more secure.
       ansible.builtin.lineinfile:
         dest: /etc/ssh/sshd_config
@@ -136,16 +124,9 @@
           line: "PasswordAuthentication no"
         - regexp: "^PermitRootLogin"
           line: "PermitRootLogin no"
-      notify: restart ssh
+      notify: Restart ssh
 
-    # - name: Install firewalld
-    #   package:
-    #     name: firewalld
-    #     state: present
-
-    # - name: Ensure firewalld is running
-    #   ansible.builtin.service:
-    #     name: firewalld
-    #     state: started
-    #     enabled: yes
-
+    - name: Enabled Fail2ban Service
+      systemd:
+        name: fail2ban
+        enabled: yes

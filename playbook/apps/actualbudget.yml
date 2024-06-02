@@ -4,7 +4,6 @@
 
   vars:
     application: actualbudget
-    
     docker_network: 
 
   tasks:

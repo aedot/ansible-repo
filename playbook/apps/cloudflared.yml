@@ -4,7 +4,7 @@
 
   vars:
     application: cloudflared
-    docker_network: 
+    docker_network:  
 
   handlers:
     - name: Restart
@@ -15,13 +15,13 @@
           '*': ignore
 
   tasks:
-    # - name: Create config folder
-    #   ansible.builtin.file:
-    #     path: "{{ config_directory }}"
-    #     state: directory
-    #     owner: "{{ common_user }}"
-    #     group: "{{ common_group }}"
-    #     mode: "0777"
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0777"
 
     - name: Create container
       community.docker.docker_container:
@@ -29,7 +29,7 @@
         image: cloudflare/cloudflared:latest
         state: started
         restart_policy: always
-        command: "tunnel --config /home/nonroot/.cloudflared/config.yml run <UUID>"
+        command: "tunnel --config /home/nonroot/.cloudflared/config.yml run <<UUID>>"
         volumes:
           - "{{ config_directory }}:/home/nonroot/.cloudflared/"
         networks:

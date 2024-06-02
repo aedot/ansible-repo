@@ -46,12 +46,12 @@
           - "1080:80"
           - "1443:443"
         env:
-          UID: "{{ common_root_id | string }}"
-          GID: "{{ common_root_group | string }}"
+          PUID: "{{ common_user_id | string }}"
+          PGID: "{{ common_group | string }}"
           TZ: "{{ common_timezone }}"
           DB_CONNECTION: pgsql
-          DB_HOST: "postgres"
-          DB_PORT: "5432"
+          DB_HOST: ""
+          DB_PORT: ""
           DB_DATABASE: speedy
           DB_USERNAME: speedy
           DB_PASSWORD: "{{ speedy_password }}"

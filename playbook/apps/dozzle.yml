@@ -24,4 +24,5 @@
           start_period: 30s
         env:
           DOZZLE_NO_ANALYTICS: "true"
+          DOZZLE_REMOTE_HOST: ""
       

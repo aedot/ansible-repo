@@ -25,11 +25,14 @@
         get_checksum: false
       register: reboot
       changed_when: reboot.stat.exists
-      notify: notify slack if restart require
+      notify: 
+        - notify slack if restart require
+        - restart
     - debug:
         var: reboot.stat.exists
 
   handlers:
+
   - name: notify slack if restart require
     tags: slack
     community.general.slack:
@@ -46,3 +49,7 @@
       username: 'Ansible on {{ inventory_hostname }}'
       link_names: 0
       parse: 'none'
+
+  - name: restart
+    ansible.builtin.reboot:
+      reboot_timeout: 300

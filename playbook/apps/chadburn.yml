@@ -4,8 +4,7 @@
 
   vars:
     application: chadburn
-    docker_network: uproxy
-
+    docker_network: 
   tasks:
     - name: Create container
       community.docker.docker_container:

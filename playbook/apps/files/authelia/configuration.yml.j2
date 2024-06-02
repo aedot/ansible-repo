@@ -1,102 +1,141 @@
----
-###############################################################################
-#                           Authelia Configuration                            #
-###############################################################################
-
-
-server:
-  host: 0.0.0.0
-  port: 9091
-
+################################################################
+#                   Authelia configuration                    #
+###############################################################
 theme: dark
 
-jwt_secret: {{ jwt_secret }}
+default_2fa_method:
+  totp
 
-default_redirection_url: https://bing.com
+server:
+  address: "tcp://0.0.0.0:9091/"
+  asset_path: /etc/authelia/assets/
+  disable_healthcheck: false
+
+log:
+  level: debug
+  file_path: /var/log/authelia.log
 
 totp:
+  disable: false
   issuer: '{{ common_tld }}'
+  algorithm: SHA1
+  digits: 6
   period: 30
   skew: 1
+  secret_size: 32
+
+webauthn:
+  disable: false
+  display_name: Authelia
+  attestation_conveyance_preference: indirect
+  user_verification: preferred
+  timeout: 60s
+
+identity_validation:
+  reset_password:
+    jwt_secret: "{{ authelia_jwt_secret }}"
+    jwt_lifespan: '5 minutes'
+    jwt_algorithm: HS256
+
+ntp:
+  address: "time.cloudflare.com:123"
+  version: 4
+  max_desync: 3s
+  disable_startup_check: false
 
 authentication_backend:
   password_reset:
     disable: false
-  refresh_interval: 5m
+
+  # file:
+    # path: /etc/authelia/.users/users_database.yml
+    # password:
+    #   algorithm: argon2id
+    #   iterations: 1
+    #   key_length: 32
+    #   salt_length: 16
+    #   memory: 1024
+    #   parallelism: 8
+
   ldap:
     implementation: custom
-    url: ldap://{{ ldap_host }}:{{ ldap_port }}
+    address: ldap://{{ ldap_host }}:{{ ldap_port }}
     timeout: 5s
     start_tls: false
-    base_dn: "{{ ldap_base_dn }}"
-    username_attribute: uid
+
+    base_dn: '{{ ldap_base_dn }}'
+
     additional_users_dn: ou=people
-    users_filter: "(&({username_attribute}={input})(objectClass=person))"
+    users_filter: (&({username_attribute}={input})(objectClass=person))
+
     additional_groups_dn: ou=groups
-    groups_filter: "(member={dn})"
-    group_name_attribute: cn
-    mail_attribute: mail
-    display_name_attribute: displayName
-    user: "uid={{ ldap_admin_user }},ou=people,{{ ldap_base_dn }}"
-    password: "{{ ldap_admin_password }}"
+    groups_filter: (member={dn})
+
+    user: uid={{ authelia_ldap_user }},ou=people,{{ ldap_base_dn }}
+    password: "{{ authelia_ldap_password }}"
+
+    attributes:
+      username: uid
+      display_name: displayName
+      mail: mail
+      group_name: cn
 
 access_control:
-  default_policy: deny
+  default_policy: "deny"
   rules:
-    ## bypass rule
-    - domain: 
-        - "auth.{{ common_tld }}"
-      policy: bypass
-    ## catch-all
-    - domain:
-        - "*.{{ common_tld }}"
+    # Rules applied to everyone
+    - domain: "overseerr.{{ common_tld }}"
+      policy: "bypass"
+    # one factor
+    - domain: "*.{{ common_tld }}"
       subject:
         - "group:humans"
       policy: one_factor
-    
 
 session:
   name: authelia_session
-  secret: {{ session_secret }}
-  domain: {{ common_tld }}"
-  expiration: 1h
+  secret: '{{ authelia_session_secret }}'
+  same_site: lax
   inactivity: 5m
-  remember_me_duration: 2M
-  redis:
-    host: "{{ host.redis_host }}"
-    port: 6379
-    password: "{{ host.redis_password }}"
-  
+  expiration: 1h
+  remember_me: 1M
+  cookies:
+    - domain: '{{ common_tld }}'
+      authelia_url: 'https://auth.{{ common_tld }}'
+      default_redirection_url: 'https://{{ common_tld }}'
+      name: 'authelia_session'
+      same_site: 'lax'
+      inactivity: '5m'
+      expiration: '1h'
+      remember_me: '1d'
+
 regulation:
   max_retries: 3
-  find_time: 120
-  ban_time: 12h
+  find_time: 2 minutes
+  ban_time: 5 minutes
 
 storage:
-  encryption_key: "{{ storage_encryption_key }}"
+  encryption_key: '{{ authelia_storage_encryption_key }}'
   postgres:
-    host: "{{ host.postgres_host }}"
-    port: "{{ host.postgres_port }}"
-    database: "{{ application }}"
-    username: "{{ application }}"
-    password: "{{ db_password }}"
+    address: 'tcp://{{ host.postgres_host }}:{{ host.postgres_port }}'
+    database: '{{ application }}'
+    schema: public
+    username: '{{ authelia_postgres_user }}'
+    password: '{{ authelia_postgres_password }}'
+    timeout: 5 seconds
 
 notifier:
   disable_startup_check: false
   smtp:
-      username: "{{ common_smtp_username }}"
-      password: "{{ common_smtp_password }}"
-      host: "{{ common_email_host }}"
-      port: "{{ common_email_port }}"
-      sender: "notification{{ common_email_to }}"
-      subject: Authelia request {title}
-      disable_require_tls: {{ 'false' if common_email_protocol=='tls' else 'true' }}
-      disable_html_emails: false
-      tls:
-        skip_verify: false
-        minimum_version: TLS1.2
-
-log:
-  file_path: /var/log/authelia/authelia.log
-  level: info
-...
+    address: "{{ common_email_host }}:{{ common_email_port }}"
+    timeout: 5s
+    username: '{{ common_smtp_username }}'
+    password: '{{ common_smtp_password }}'
+    sender: "Authentication Service <notification{{ common_email_to }}>"
+    subject: "[Authelia] request {title}"
+    startup_check_address: noreply{{ common_email_to }}
+    disable_require_tls: {{ 'false' if common_email_protocol=='tls' else 'true' }}
+    disable_html_emails: false
+    tls:
+      skip_verify: false
+      minimum_version: TLS1.2
