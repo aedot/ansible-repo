@@ -1,0 +1,36 @@
+[DEFAULT]
+
+bantime = 8h
+backend = auto
+usedns = warn
+logencoding = auto
+enabled = false
+mode = normal
+
+# email address to receive notifications.
+destemail = "{{ common_user }}{{ common_email_to }}"    
+# the email address from which to send emails.
+sender = alerts"{{ common_email_to }}"   
+# name on the notification emails.
+sendername = Fail2Ban    
+# email transfer agent to use. 
+mta = sendmail   
+
+protocol = tcp
+chain =
+port = 0:65535
+fail2ban_agent = Fail2Ban/%(fail2ban_version)s
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+action_abuseipdb = abuseipdb
+action = %(action_)s
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+# the length of time between login attempts for maxretry. 
+findtime = 5m
+# attempts from a single ip before a ban is imposed.
+maxretry = 7
+# the number of seconds that a host is banned for.

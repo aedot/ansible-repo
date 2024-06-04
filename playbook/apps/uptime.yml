@@ -1,0 +1,33 @@
+---
+
+- hosts: 
+
+  vars:
+    application: uptime-kuma
+    docker_network: 
+
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0775"
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: louislam/uptime-kuma:latest
+        pull: true
+        state: started
+        restart_policy: always
+        ports:
+        - "3001:3001"
+        volumes:
+          - "{{ config_directory }}:/app/data"
+        security_opts:
+          - no-new-privileges:true
+        networks:
+          - name: "{{ docker_network }}"
