@@ -218,7 +218,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: crowdsecurity/crowdsec:v1.6.0
+        image: crowdsecurity/crowdsec:v1.6.2
         state: started
         restart_policy: always
         published_ports:
