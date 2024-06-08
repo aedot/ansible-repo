@@ -4,6 +4,8 @@
 
   vars:
     application: node-exporter
+
+    docker_network: 
     
   tasks:
     - name: Create config folder
@@ -12,12 +14,12 @@
         state: directory
         owner: "{{ common_user }}"
         group: "{{ common_group }}"
-        mode: "0777"
+        mode: "0771"
 
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: prom/node-exporter:latest
+        image: quay.io/prometheus/node-exporter:v1.8.1
         state: started
         restart_policy: unless-stopped
         command:
@@ -25,4 +27,6 @@
         published_ports:
           - 9100:9100
         volumes:
-          - /:/host:ro
+          - /:/host:ro,rslave
+        networks:
+          - name: "{{ docker_network }}"

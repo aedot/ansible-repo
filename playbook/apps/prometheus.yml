@@ -1,0 +1,101 @@
+---
+
+- hosts: 
+
+  vars:
+    application: prometheus
+
+    docker_network: 
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0771"
+      register: _config_dir
+
+    - name: Create config, rules and data directories
+      ansible.builtin.file:
+        path: "{{ _config_dir.path }}/{{ item }}"
+        state: directory
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0771"
+      loop:
+        - config
+        - rules
+        - data
+      register: _dir
+
+    - name: Copy rules
+      ansible.builtin.copy:
+        src: "{{ files_directory }}/rules/"
+        dest: "{{ _dir.results | selectattr('item', 'match', 'rules') | flatten | map(attribute='path') | first }}/"
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0444"
+        validate: "docker run --rm --name {{ application }}_config_check -v %s:/tmp/rule.yml --entrypoint /bin/promtool prom/prometheus:latest check rules /tmp/rule.yml"
+      notify: Restart
+
+    - name: Template configs
+      ansible.builtin.template:
+        src: "{{ files_directory }}/prometheus.yml.j2"
+        dest: "{{ _dir.results | selectattr('item', 'match', 'config') | flatten | map(attribute='path') | first }}/prometheus.yml"
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0444"
+        validate: "docker run --rm --name {{ application }}_config_check -v %s:/tmp/config.yml --entrypoint /bin/promtool prom/prometheus:latest check config /tmp/config.yml"
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: quay.io/prometheus/prometheus:v2.52.0
+        state: started
+        restart_policy: unless-stopped
+        command:
+          - --config.file=/etc/prometheus/prometheus.yml
+
+          # https://prometheus.io/docs/operating/security/
+          - --web.enable-admin-api  # enables administrative HTTP API
+          - --web.enable-lifecycle  # enables HTTP reloads and shutdowns of Prometheus
+
+          # https://prometheus.io/docs/prometheus/latest/storage/#operational-aspects
+          - --storage.tsdb.path=/prometheus  # where Prometheus writes its database
+          - --storage.tsdb.retention.time=6h  # when to remove old data
+
+          # https://prometheus.io/docs/prometheus/latest/configuration/template_reference/#template-type-differences
+          # so they are stored here when we create them
+          - --web.console.libraries=/etc/prometheus/console_libraries
+          - --web.console.templates=/etc/prometheus/consoles
+
+          # https://prometheus.io/docs/prometheus/latest/configuration/https/
+          - "--web.external-url=https://{{ application }}.{{ common_tld }}"
+
+          # https://thanos.io/tip/components/sidecar.md/
+          - --storage.tsdb.min-block-duration=2h
+          - --storage.tsdb.max-block-duration=2h
+        volumes:
+          - "{{ _dir.results | selectattr('item', 'match', 'config') | flatten | map(attribute='path') | first }}:/etc/prometheus"
+          - "{{ _dir.results | selectattr('item', 'match', 'rules') | flatten | map(attribute='path') | first }}:/rules"
+          - "{{ _dir.results | selectattr('item', 'match', 'data') | flatten | map(attribute='path') | first }}:/prometheus"
+
+          - "{{ prometheus_scrape_directory }}:/scrape_config_files"
+
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+        user: root:root
+        published_ports:
+          - 9090:9090
+        networks:
+          - name: "{{ docker_network }}"

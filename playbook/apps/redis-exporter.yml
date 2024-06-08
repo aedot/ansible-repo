@@ -1,0 +1,23 @@
+---
+
+    - hosts: 
+    
+      vars:
+        application: redis-exporter
+        
+        docker_network: 
+        
+      tasks:
+        - name: Create container
+          community.docker.docker_container:
+            name: "{{ application }}"
+            image: oliver006/redis_exporter:v1.60.0
+            state: started
+            restart_policy: unless-stopped
+            published_ports:
+              - 9121:9121
+            env:
+                REDIS_ADDR: "{{ host.redis_host }}:{{ host.redis_port }}"
+                REDIS_PASSWORD: "{{ host.redis_password }}"
+            networks:
+              - name: "{{ docker_network }}"

@@ -1,0 +1,80 @@
+---
+
+- hosts: 
+
+  vars:
+    application: alertmanager
+
+    docker_network: 
+
+    alertmanager:
+
+      slack_url: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        35323938653530616631373830633361653666393233366432393135393536646562663561316537
+        3736363138616138373863616132663438626133313165350a646166363936353966616134333163
+        30336539366564386334363361303132336239343762313131313862633665313363353566626335
+        3661323030663564660a333365656635306462653363396365313530306362336137363465353939
+        32323966306537623263333166346132656662316530363238626363383664306665633632313865
+        37303164623566353035653762626139353362623436326263613432313735613636663938386263
+        35396163623034313637613431636364326337313832336632646339613036663438323963613438
+        66393534643561656130343862303138363166616565366638393466333738363365353934326439
+        3938
+
+  handlers:
+    - name: Restart
+      community.docker.docker_container:
+        name: "{{ application }}"
+        restart: true
+        comparisons:
+          '*': ignore
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ config_directory }}/{{ item }}"
+        state: directory
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0771"
+      loop:
+        - config
+        - data
+
+    - name: Template config
+      ansible.builtin.template:
+        src: "{{ files_directory }}/alertmanager.yml.j2"
+        dest: "{{ config_directory }}/config/alertmanager.yml"
+        owner: "65534"  # nobody user
+        group: "{{ common_group }}"
+        mode: "0444"
+        validate: "docker run --rm --name {{ application }}_config_check -v %s:/tmp/config.yml --entrypoint /bin/amtool prom/alertmanager:latest check-config /tmp/config.yml"
+      notify: Restart
+
+    - name: Create container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: quay.io/prometheus/alertmanager:v0.27.0
+        pull: true
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "9093:9093"
+        command:
+          - "--config.file=/etc/alertmanager/alertmanager.yml"
+          - "--storage.path=/alertmanager"
+          - "--web.external-url=https://{{ application }}.{{ common_tld }}"
+          - "--data.retention=72h"
+        volumes:
+          - "{{ config_directory }}/config:/etc/alertmanager"
+          - "{{ config_directory }}/data:/alertmanager"
+        networks:
+          - name: "{{ docker_network }}"
