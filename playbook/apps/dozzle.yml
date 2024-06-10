@@ -9,7 +9,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: amir20/dozzle:latest
+        image: amir20/dozzle:v7.0.5
         state: started
         restart_policy: unless-stopped
         published_ports:
@@ -25,4 +25,4 @@
         env:
           DOZZLE_NO_ANALYTICS: "true"
           DOZZLE_REMOTE_HOST: ""
-      
+          DOZZLE_HOSTNAME: ""
