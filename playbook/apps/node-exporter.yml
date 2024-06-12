@@ -4,8 +4,6 @@
 
   vars:
     application: node-exporter
-
-    docker_network: 
     
   tasks:
     - name: Create config folder
@@ -28,5 +26,3 @@
           - 9100:9100
         volumes:
           - /:/host:ro,rslave
-        networks:
-          - name: "{{ docker_network }}"

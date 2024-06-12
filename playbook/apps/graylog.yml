@@ -1,0 +1,140 @@
+---
+
+- hosts: 
+
+  vars:
+    application: graylog
+
+    docker_network: 
+
+    graylog:
+      admin_password: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        36666565363831353936346435653935653861303339383938613263393332623636383266643732
+        6136303630326266303434613434376661306530386633380a626434376332383766343635366561
+        37386231633431396462633662383961633833386365323434653561396433613134623330663165
+        6136656562393166380a623862356561633833376365633264656266653539633537636338363731
+        33303733653134376161653935663732353432616333316231663633633164653239653433333261
+        64386462393263303039396261643764383863646331383136323434306132363139316434386466
+        38653336306631636166633236616633393261393933646164386566306561343031333565333639
+        61623866343961643165
+
+      secret_password: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        31366339366164636165376137363563323166383836656664306137663137636134333636646162
+        3639623433343638303761316562643761666334356664630a653939656663363239353963303264
+        65343231336663323233323266626537333163656235646533623961653233346635646165396632
+        3234313531363430650a343032386133346536336163646339316666383036633330363937366335
+        35323234653066653566656638393636666632303338323165373731633132306131306336663238
+        34316332393237383735666463336430643636313434656138623930613162353738383039333536
+        61306537323235383062613331356230633761346464653865623365343237343135303432326638
+        34326664376133653163
+
+      root_password: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+        61633833656637633864386166613265663261633839393433623431396136303263396330376561
+        3431646536376534663434323839383861646237303634640a373638393462386365666633333062
+        61353035666530396230633736646138306138663338393362636161373665333035643166663363
+        3233353232356163630a623836613039326636383233393063343662303736383733643833356435
+        66386263616566376432363430623465343661346262666237616366323537346462393065373761
+        34326534306137623564333136643861333930643937643532323764316530356266383938616138
+        66633334393634393637373739653665613639396434386438323538393066633433376237386437
+        30316238353261616564
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+    
+    - name: Create {{ application }}-opensearch folders
+      ansible.builtin.file:
+        path: "{{ config_directory }}/opensearch"
+        state: directory
+        owner: "{{ common_user_id | string }}" 
+        group: "{{ common_group_id | string }}"
+        mode: "0771"
+
+    - name: Create {{ application }}-server folders
+      ansible.builtin.file:
+        path: "{{ config_directory }}/graylog"
+        state: directory
+        owner: "1100 | string" 
+        group: "{{ common_group_id | string }}"
+        mode: "0771"
+
+    - name: Template {{ application }} configs
+      ansible.builtin.template:
+        src: "{{ files_directory }}/{{ item }}.j2"
+        dest: "{{ config_directory }}/graylog/config/{{ item }}"
+        mode: "0644"
+      loop:
+        - graylog.conf
+        - log4j2.xml
+
+    - name: Create {{ application }}-mongodb container
+      community.docker.docker_container:
+        name: "{{ application }}-mongodb"
+        image: mongo:6.0.5-jammy
+        state: started
+        restart_policy: unless-stopped
+        volumes:
+          - "{{ config_directory }}/mongodb:/data/db"
+        networks:
+          - name: "{{ docker_network }}"
+    
+    - name: Create {{ application }}-opensearch container
+      community.docker.docker_container:
+        name: "{{ application }}-opensearch"
+        image: opensearchproject/opensearch:2.1.0
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - 9200:9200
+        volumes:
+          - "{{ config_directory }}/opensearch:/usr/share/opensearch/data"
+        env:
+          TZ: "{{ common_timezone }}"
+          PUID: "{{ common_user_id | string }}"
+          PGID: "{{ common_group_id | string }}"
+          discovery.type: single-node
+          action.auto_create_index: "false"
+          plugins.security.ssl.http.enabled: "false"
+          plugins.security.disabled: "true"
+          OPENSEARCH_INITIAL_ADMIN_PASSWORD: "{{ graylog.admin_password }}"
+          bootstrap.memory_lock: "true"
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        networks:
+          - name: "{{ docker_network }}"
+
+    - name: Create {{ application }}-server container
+      community.docker.docker_container:
+        name: "{{ application }}-server"
+        image: graylog/graylog:6.0.3-1
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - 9000:9000/tcp   
+          - 1514:1514/tcp   
+          - 1514:1514/udp   
+          - 12201:12201/tcp
+          - 12201:12201/udp
+        volumes:
+          - "{{ config_directory }}/graylog:/usr/share/graylog/data"
+        env:
+          GRAYLOG_PASSWORD_SECRET: "{{ graylog.secret_password }}"
+          GRAYLOG_ROOT_PASSWORD_SHA2: "{{ graylog.root_password }}"
+          GRAYLOG_HTTP_BIND_ADDRESS: "0.0.0.0:9000"
+          GRAYLOG_HTTP_EXTERNAL_URI: "http://graylog:9000/"
+          GRAYLOG_ELASTICSEARCH_HOSTS: "http://graylog-opensearch:9200"
+          GRAYLOG_MONGODB_URI: "mongodb://graylog-mongodb:27017/graylog"
+          GRAYLOG_TIMEZONE: "{{ common_timezone }}"
+          TZ: "{{ common_timezone }}"
+
+        entrypoint: /usr/bin/tini -- wait-for-it graylog-opensearch:9200 -- /docker-entrypoint.sh
+          
+        networks:
+          - name: "{{ docker_network }}"

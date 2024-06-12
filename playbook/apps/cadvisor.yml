@@ -4,29 +4,52 @@
 
   vars:
     application: cadvisor
+
+    docker_network: 
+
+    cadvisor_disabled_metrics:
+      - advtcp
+      - cpu_topology
+      - disk
+      - hugetlb
+      - memory_numa
+      - percpu
+      - process
+      - referenced_memory
+      - resctrl
+      - sched
+      - tcp
+      - udp
     
   tasks:
-    - name: Create config folder
-      ansible.builtin.file:
-        path: "{{ config_directory }}"
-        state: directory
-        owner: "{{ common_user }}"
-        group: "{{ common_group }}"
-        mode: "0777"
-
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: gcr.io/cadvisor/cadvisor:latest
+        image: gcr.io/cadvisor/cadvisor:v0.49.1
         state: started
         restart_policy: unless-stopped
-        published_ports:
-          - 8383:8080
+        command:
+          - --allow_dynamic_housekeeping=true
+          - --docker_only=true
+          - --event_storage_age_limit=default=0
+          - --event_storage_event_limit=default=0
+          - --global_housekeeping_interval=30s
+          - --housekeeping_interval=30s
+          - --max_housekeeping_interval=35s
+          - --storage_duration=1m0s
+          - --store_container_labels=false
+          - "--disable_metrics={{ cadvisor_disabled_metrics | join(',') }}"
         volumes:
           - /:/rootfs:ro
-          - /var/run:/var/run
+          - /var/run:/var/run:ro
           - /sys:/sys:ro
           - /var/lib/docker/:/var/lib/docker:ro
           - /dev/disk/:/dev/disk:ro
-        security_opts:
-          - no-new-privileges:true
+        devices:
+          - /dev/kmsg
+        privileged: true
+        pid_mode: host
+        published_ports:
+          - 8383:8080
+        networks:
+          - name: "{{ docker_network }}"
