@@ -67,7 +67,7 @@
     - name: Create {{ application }}-agent2
       community.docker.docker_container:
         name: "{{ application }}-agent2"
-        image: zabbix/zabbix-agent2:6.0.0-ubuntu
+        image: zabbix/zabbix-agent2:7.0.0-ubuntu
         state: started
         restart_policy: unless-stopped
         volumes: 
