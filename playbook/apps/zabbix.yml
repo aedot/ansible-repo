@@ -47,7 +47,7 @@
     - name: Create {{ application }}-apache
       community.docker.docker_container:
         name: "{{ application }}-web"
-        image: zabbix/zabbix-web-apache-pgsql:6.0.0-ubuntu
+        image: zabbix/zabbix-web-apache-pgsql:7.0.0-ubuntu
         state: started
         restart_policy: unless-stopped
         published_ports:
