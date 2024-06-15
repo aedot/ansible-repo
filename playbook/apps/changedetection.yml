@@ -1,0 +1,55 @@
+---
+
+- hosts: 
+
+  vars:
+    application: changedetection
+
+    docker_network: 
+
+  tasks:
+    - name: Create config folder
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        state: directory
+        owner: "{{ common_user }}"
+        group: "{{ common_group }}"
+        mode: "0771"
+
+    - name: Create playwright container
+      community.docker.docker_container:
+        name: "{{ application }}-chrome"
+        image: dgtlmoon/sockpuppetbrowser:latest
+        state: started
+        restart_policy: unless-stopped
+        capabilities:
+          - SYS_ADMIN
+        published_ports:
+          - "3222:3000"
+        env:
+          SCREEN_WIDTH: "1920"
+          SCREEN_HEIGHT: "1024"
+          SCREEN_DEPTH: "16"
+          MAX_CONCURRENT_CHROME_PROCESSES: "10"
+        networks:
+          - name: "{{ docker_network }}"
+
+    - name: Create "{{ application }}" container
+      community.docker.docker_container:
+        name: "{{ application }}"
+        image: ghcr.io/dgtlmoon/changedetection.io:0.45.23
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "5000:5000"
+        volumes:
+          - "{{ config_directory }}:/datastore"
+        env:
+          BASE_URL: "https://{{ application }}.{{ common_tld }}"
+
+          PLAYWRIGHT_DRIVER_URL: "ws://{{ application }}-chrome:3222"
+
+          PUID: "{{ common_user_id | string }}"
+          PGID: "{{ common_group_id | string }}"
+        networks:
+          - name: "{{ docker_network }}"
