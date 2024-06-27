@@ -18,7 +18,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: actualbudget/actual-server:24.5.0
+        image: actualbudget/actual-server:24.6.0
         pull: true
         state: started
         restart_policy: always
