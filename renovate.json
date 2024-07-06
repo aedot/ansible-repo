@@ -17,12 +17,12 @@
 
   "timezone": "America/Los_Angeles",
   "schedule": [
-    "after 10pm, before 5:00am"
+    "after 10pm, before 5:00am every friday"
   ],
 
   "rangeStrategy": "pin",
 
-  "assignees": ["aedot"],
+  // "assignees": ["aedot"],
 
   "labels": ["dependencies"],
 
@@ -36,7 +36,7 @@
     {
       "description": "Automatically merges updates",
       "matchUpdateTypes": ["major", "minor", "patch", "digest","pin"],
-      "matchCurrentVersion": "!/^0/",
+      // "matchCurrentVersion": "!/^0/",
       "automerge": true
     },
 
