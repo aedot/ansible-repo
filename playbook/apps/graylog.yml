@@ -78,7 +78,7 @@
     - name: Create {{ application }}-mongodb container
       community.docker.docker_container:
         name: "{{ application }}-mongodb"
-        image: mongo:6.0.16-jammy
+        image: mongo:7.0.12-jammy
         state: started
         restart_policy: unless-stopped
         volumes:
