@@ -22,32 +22,22 @@
 
   "rangeStrategy": "pin",
 
-  // "assignees": ["aedot"],
+  "reviewers": ["aedot"],
 
   "labels": ["dependencies"],
 
   "commitMessagePrefix": "{{depName}}:",
   "commitMessageAction": "Update",
-  "commitMessageTopic": "dependency {{depName}}",
-  "commitMessageExtra": "to {{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}{{prettyNewMajor}}{{else}}{{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}",
-
+  "commitMessageTopic": "version",
 
   "packageRules": [
     {
-      "description": "Automatically merges updates",
-      "matchUpdateTypes": ["major", "minor", "patch", "digest","pin"],
-      // "matchCurrentVersion": "!/^0/",
-      "automerge": true
+      "matchCategories": ["python"],
+      "enabled": false
     },
 
     {
-      "description": "Automatically merge dev dependencies",
-      "matchDepTypes": ["devDependencies"],
-      "automerge": true
-    },
-
-    {
-      "matchDatasources": ["docker"],
+      "matchCategories": ["docker"],
       "matchCurrentVersion": "/localhost|latest/",
       "enabled": false
     }
