@@ -4,7 +4,9 @@
 
   vars:
     application: mealie
+
     docker_network: 
+
     postgres_password: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       34376434633335666136626365323131313062633265366264383339646339323964376330623366
@@ -26,7 +28,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: ghcr.io/mealie-recipes/mealie:v1.8.0
+        image: ghcr.io/mealie-recipes/mealie:v1.10.2
         state: started
         restart_policy: unless-stopped
         env:
@@ -53,20 +55,33 @@
           SMTP_PORT: "{{ common_email_port | string }}"
           SMTP_FROM_NAME: "{{ application | title }}"
           SMTP_AUTH_STRATEGY: "{{ 'tls' if common_email_protocol == 'tls' else 'ssl' }}"
-          SMTP_FROM_EMAIL: "{{ application }}{{ common_email_to }}"
+          SMTP_FROM_EMAIL: "noreply{{ common_email_to }}"
           SMTP_USER: "{{ common_smtp_username }}"
           SMTP_PASSWORD: "{{ common_smtp_password }}"
+
+          # ## Ldap
+          # LDAP_AUTH_ENABLED: "false"
+          # LDAP_SERVER_URL: ldap://{{ ldap_host }}:{{ ldap_port }}
+          # LDAP_ENABLE_STARTTLS: "false"
+          # LDAP_BASE_DN: ou=people,{{ ldap_base_dn }}
+          # LDAP_USER_FILTER: (memberof=cn=mealie,ou=groups,{{ ldap_base_dn }})
+          # LDAP_ADMIN_FILTER: (memberof=cn=mealie-admin,ou=groups,{{ ldap_base_dn }})
+          # LDAP_QUERY_BIND: (uid={{ authelia_ldap_user }},ou=people,{{ ldap_base_dn }})
+          # LDAP_QUERY_PASSWORD: {{ authelia_ldap_password }}
+          # LDAP_ID_ATTRIBUTE: uid
+          # LDAP_MAIL_ATTRIBUTE: mail
+          # LDAP_NAME_ATTRIBUTE: displayName
 
           ## OpenID Connect (OIDC)
           OIDC_AUTH_ENABLED: "true"
           OIDC_CONFIGURATION_URL: "https://auth.{{ common_tld }}/.well-known/openid-configuration"
           OIDC_CLIENT_ID: "{{ application }}"
-          OIDC_AUTO_REDIRECT: "true"
+          # OIDC_AUTO_REDIRECT: "true"
           OIDC_PROVIDER_NAME: "Authelia"
-          OIDC_SIGNUP_ENABLED: "true"
-          OIDC_USER_CLAIM: "email"
-          OIDC_USER_GROUP: users
-          OIDC_ADMIN_GROUP: admins
+          # OIDC_SIGNUP_ENABLED: "true"
+          # OIDC_USER_CLAIM: "email"
+          # OIDC_USER_GROUP: users
+          # OIDC_ADMIN_GROUP: admins
         volumes:
           - "{{ config_directory }}/data:/app/data"
         published_ports:
@@ -80,7 +95,4 @@
             "traefik.http.routers.{{ application }}.entryPoints": "https",
             "traefik.http.services.{{ application }}.loadbalancer.server.scheme": "http",
             "traefik.http.routers.{{ application }}.middlewares": "auth@file",
-            "traefik.http.middlewares.test-ratelimit.ratelimit.average": "100|string",
-            "traefik.http.middlewares.test-ratelimit.ratelimit.burst": "100|string",
-            "traefik.http.middlewares.test-ratelimit.ratelimit.sourcecriterion.ipstrategy.excludedips": "127.0.0.1/32, 172.16.0.0/24",
           }'

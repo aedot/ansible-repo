@@ -55,8 +55,8 @@ authentication_backend:
     additional_groups_dn: ou=groups
     groups_filter: (member={dn})
 
-    user: uid={{ authelia_ldap_user }},ou=people,{{ ldap_base_dn }}
-    password: "{{ authelia_ldap_password }}"
+    user: uid={{ ldap_user }},ou=people,{{ ldap_base_dn }}
+    password: "{{ ldap_password }}"
 
     attributes:
       username: uid
@@ -71,6 +71,7 @@ access_control:
     - domain:
         - "auth.{{ common_tld }}"
         - "overseerr.{{ common_tld }}"
+        - "onboard.{{ common_tld }}"
       policy: "bypass"
     # catch-all
     - domain:
@@ -126,4 +127,39 @@ notifier:
     tls:
       skip_verify: false
       minimum_version: TLS1.2
+
+identity_providers:
+  oidc:
+    jwks:
+      - key: |
+          {{ _authelia_private_key.privatekey | indent(10) }}
+
+    cors:
+      endpoints:
+        - userinfo
+        - authorization
+        - token
+        - revocation
+        - introspection
+      allowed_origins:
+        - "https://mealie.{{ common_tld }}"
+
+    clients:
+      - client_id: "mealie"
+        client_name: "mealie"
+        public: true
+        redirect_uris:
+          - "https://mealie.{{ common_tld }}/login"
+          - "https://mealie.{{ common_tld }}/login?direct=1"
+        scopes:
+          - openid
+          - profile
+          - email
+          - groups
+        grant_types:
+          - authorization_code
+
+        authorization_policy: one_factor
+        consent_mode: auto
+
 ...
