@@ -11,7 +11,7 @@
         - name: Create container
           community.docker.docker_container:
             name: "{{ application }}"
-            image: oliver006/redis_exporter:v1.60.0
+            image: oliver006/redis_exporter:v1.65.0
             state: started
             restart_policy: unless-stopped
             published_ports:
