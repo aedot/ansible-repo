@@ -35,7 +35,7 @@
     - name: Create container
       community.docker.docker_container:
         name: "{{ application }}"
-        image: grafana/grafana:11.0.0
+        image: grafana/grafana:11.3.0
         state: started
         restart_policy: unless-stopped
         published_ports:
