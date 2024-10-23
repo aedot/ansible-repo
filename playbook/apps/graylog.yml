@@ -113,7 +113,7 @@
     - name: Create {{ application }}-server container
       community.docker.docker_container:
         name: "{{ application }}-server"
-        image: graylog/graylog:6.0.3-1
+        image: graylog/graylog:6.1.1-1
         state: started
         restart_policy: unless-stopped
         published_ports:
